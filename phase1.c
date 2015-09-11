@@ -58,7 +58,7 @@ void startup()
     /* initialize the process table */
     if (DEBUG && debugflag)
         USLOSS_Console("startup(): initializing process table, ProcTable[]\n");
-    procStruct ProcTable[MAXPROC] = {NULL};
+    struct procStruct ProcTable[MAXPROC] = { {} };
 
     /* Initialize the Ready list, etc. */
     if (DEBUG && debugflag)
@@ -130,20 +130,37 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
         USLOSS_Console("fork1(): creating process %s\n", name);
 
     /* test if in kernel mode; halt if in user mode */
-    if (USLOSS_PsrGet().USLOSS_PSR_CURRENT_MODE == 0)
-        USLOSS_Console("fork1() realized it's not in kernel mode, halting before creating %s\n", name);
+    if ( (USLOSS_PsrGet()&USLOSS_PSR_CURRENT_MODE)  == 0)
+        USLOSS_Console("fork1() realized it's not in kernel mode. Halting... %s\n", name);
         USLOSS_Halt(1);
-        
+
     /* Return if stack size is too small */
 
+    if (stacksize < USLOSS_MIN_STACK){
+      USLOSS_Console("fork1(): Process stack size is too small.  Halting...\n");
+      USLOSS_Halt(1);
+    }
+
     /* find an empty slot in the process table */
+
+    //If the first entry is null, then the sentinel still needs to be started
+    if (ProcTable[0].priority == 0){
+        USLOSS_Console("fork1(): ProcTable is empty, first process going in 0\n");
+        procSlot = 0;
+    }
+    else{
+        //otherwise, the next avaliable slot is given out
+        //TODO
+    }
 
     /* fill-in entry in process table */
     if ( strlen(name) >= (MAXNAME - 1) ) {
         USLOSS_Console("fork1(): Process name is too long.  Halting...\n");
         USLOSS_Halt(1);
     }
+    //assign name to the process's proctStruct
     strcpy(ProcTable[procSlot].name, name);
+
     ProcTable[procSlot].start_func = f;
     if ( arg == NULL )
         ProcTable[procSlot].startArg[0] = '\0';
