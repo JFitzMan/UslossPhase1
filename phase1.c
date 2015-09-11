@@ -149,8 +149,15 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
         procSlot = 0;
     }
     else{
-        //otherwise, the next avaliable slot is given out
-        //TODO
+        for (int i = 0; i < MAXPROC; ++i)
+        {
+          //break on the first empty spot in the table
+          if (ProcTable[0].priority == 0)
+          {
+            procSlot = i;
+            break;
+          }
+        }
     }
 
     /* fill-in entry in process table */
@@ -202,7 +209,7 @@ void launch()
         USLOSS_Console("launch(): started\n");
 
     /* Enable interrupts */
-    enableInterrupts();
+    //enableInterrupts();
 
     /* Call the function passed to fork1, and capture its return value */
     result = Current->start_func(Current->startArg);
