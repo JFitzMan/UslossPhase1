@@ -15,9 +15,9 @@ CFLAGS = -Wall -g -I${INCLUDE}
 
 UNAME := $(shell uname -s)
 
-ifeq ($(UNAME), Darewin)
-	CFLAGS += -D_XOPEN_SOURCE      # use for Mac, NOT for Linux!!
-endif
+#ifeq ($(UNAME), Darewin)
+	CFLAGS += -D_XOPEN_SOURCE=600      # use for Mac, NOT for Linux!!
+#endif
 
 LDFLAGS = -L. -L./usloss/lib
 
