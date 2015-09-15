@@ -37,6 +37,9 @@ static procPtr ReadyList;
 /* current process ID */
 procPtr Current;
 
+//number of running processess
+int procAmount;
+
 /* the next pid to be assigned */
 unsigned int nextPid = SENTINELPID;
 
@@ -58,7 +61,17 @@ void startup()
     /* initialize the process table */
     if (DEBUG && debugflag)
         USLOSS_Console("startup(): initializing process table, ProcTable[]\n");
-    struct procStruct ProcTable[MAXPROC] = { {} };
+
+    //Initialize specific parts of the ProcTable to be empty
+    for(i = 0; i < MAXPROC; i++){
+      ProcTable[i].nextProcPtr = NO_CURRENT_PROCESS;
+      ProcTable[i].childProcPtr = NO_CURRENT_PROCESS;
+      ProcTable[i].name[0] = '\0';
+      ProcTable[i].startArg[0] = '\0';
+      ProcTable[i].pid = NO_PID;
+      ProcTable[i].status = EMPTY;
+    }
+
 
     /* Initialize the Ready list, etc. */
     if (DEBUG && debugflag)
@@ -130,35 +143,69 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
         USLOSS_Console("fork1(): creating process %s\n", name);
 
     /* test if in kernel mode; halt if in user mode */
-    if ( (USLOSS_PsrGet()&USLOSS_PSR_CURRENT_MODE)  == 0)
+    if ( (USLOSS_PsrGet()&USLOSS_PSR_CURRENT_MODE)  == 0){
         USLOSS_Console("fork1() realized it's not in kernel mode. Halting... %s\n", name);
         USLOSS_Halt(1);
-
+    }
     /* Return if stack size is too small */
-
     if (stacksize < USLOSS_MIN_STACK){
       USLOSS_Console("fork1(): Process stack size is too small.  Halting...\n");
-      USLOSS_Halt(1);
+      return -2;
+    }
+    /* Return is the ProcTable is Full */
+    if (procAmount >= MAXPROC){
+      USLOSS_Console("fork1(): Process Table Full! Returning -1\n");
+      return -1;
+    }
+    /* Return if priority is out of range */
+    if (priority < MAXPRIORITY || priority > MINPRIORITY+1){
+      USLOSS_Console("fork1(): Priority out of range! Returning -1\n");
+      return -1;
+    }
+    /* Return if name is NULL */
+    if (name == NULL){
+      USLOSS_Console("fork1(): No name supplied! Returning -1\n");
+      return -1;
+    }
+    /* Return if name is NULL */
+    if (procCode == NULL){
+      USLOSS_Console("fork1(): No ProcCode supplied! Returning -1\n");
+      return -1;
     }
 
-    /* find an empty slot in the process table */
+    /* Assign spot in ProcTable */
 
     //If the first entry is null, then the sentinel still needs to be started
-    if (ProcTable[0].priority == 0){
+    if (ProcTable[0].status == EMPTY){
         USLOSS_Console("fork1(): ProcTable is empty, first process going in 0\n");
         procSlot = 0;
     }
+    //otherise, assign the next empty slot and pid
     else{
-        for (int i = 0; i < MAXPROC; ++i)
+        //ensures we only search the table once
+        //a check was already done to see if it's full, so it shouldnt be
+        int endValue = nextPid+50;
+        for (int i = nextPid; i < endValue; ++i)
         {
           //break on the first empty spot in the table
-          if (ProcTable[0].priority == 0)
+          if (ProcTable[i%MAXPROC].status == EMPTY)
           {
-            procSlot = i;
+            procSlot = i%MAXPROC;
             break;
+          }
+          else{
+            nextPid++;
           }
         }
     }
+    //increments PIDs so they never repeat
+    int newPid = nextPid;
+    Current = &ProcTable[0];
+    nextPid++;
+
+
+
+
 
     /* fill-in entry in process table */
     if ( strlen(name) >= (MAXNAME - 1) ) {
@@ -168,7 +215,7 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     //assign name to the process's proctStruct
     strcpy(ProcTable[procSlot].name, name);
 
-    ProcTable[procSlot].start_func = f;
+    //assign args to process's procStruct
     if ( arg == NULL )
         ProcTable[procSlot].startArg[0] = '\0';
     else if ( strlen(arg) >= (MAXARG - 1) ) {
@@ -178,19 +225,33 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     else
         strcpy(ProcTable[procSlot].startArg, arg);
 
+    //assign start function address to procStruct
+    ProcTable[procSlot].start_func = procCode;
+
+    //assign pid
+    ProcTable[procSlot].pid = newPid;
+    //assign priority
+    ProcTable[procSlot].priority = priority;
+    //assign stacksize
+    ProcTable[procSlot].stackSize = stacksize;
+    //assign status
+    ProcTable[procSlot].status = READY;
+
+    
+
     /* Initialize context for this process, but use launch function pointer for
      * the initial value of the process's program counter (PC)
      */
+    procAmount++;
     USLOSS_ContextInit(&(ProcTable[procSlot].state), USLOSS_PsrGet(),
                        ProcTable[procSlot].stack,
                        ProcTable[procSlot].stackSize,
                        launch);
-
     /* for future phase(s) */
     p1_fork(ProcTable[procSlot].pid);
 
     /* More stuff to do here... */
-
+    return newPid;
 } /* fork1 */
 
 /* ------------------------------------------------------------------------
@@ -316,3 +377,5 @@ void disableInterrupts()
         /* We ARE in kernel mode */
         USLOSS_PsrSet( USLOSS_PsrGet() & ~USLOSS_PSR_CURRENT_INT );
 } /* disableInterrupts */
+
+

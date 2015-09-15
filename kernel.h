@@ -1,9 +1,10 @@
 /* Patrick's DEBUG printing constant... */
-#define DEBUG 0
+#define DEBUG 1
 
 typedef struct procStruct procStruct;
 
 typedef struct procStruct * procPtr;
+
 
 struct procStruct {
    procPtr         nextProcPtr;
@@ -21,11 +22,16 @@ struct procStruct {
    /* other fields as needed... */
 };
 
+/* 
+Indicates the status of the USLOSS processor
+
+accessed via USLOSS_PsrGet and USLOSS_PsrSet
+*/
 struct psrBits {
-    unsigned int curMode:1;
-    unsigned int curIntEnable:1;
-    unsigned int prevMode:1;
-    unsigned int prevIntEnable:1;
+    unsigned int curMode:1; //1 if the processor is in kernal mode, 0 otherwise
+    unsigned int curIntEnable:1; //1 if interrupts are enabled, 0 otherwise
+    unsigned int prevMode:1; //curMode goes here when iterrupt occurs
+    unsigned int prevIntEnable:1; //curIntEnabled goes here when interupt occurs
     unsigned int unused:28;
 };
 
@@ -36,8 +42,11 @@ union psr_values {
 
 /* Some useful constants.  Add more as needed... */
 #define NO_CURRENT_PROCESS NULL
+#define NO_PID -1
+#define EMPTY 1
 #define MINPRIORITY 5
 #define MAXPRIORITY 1
 #define SENTINELPID 1
 #define SENTINELPRIORITY (MINPRIORITY + 1)
+#define READY 1
 
