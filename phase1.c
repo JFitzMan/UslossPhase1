@@ -106,7 +106,7 @@ void startup()
     dispatcher();
     USLOSS_Console("startup(): Should not see this message! ");
     USLOSS_Console("Returned from fork1 call that created start1\n");
-    
+
 
     return;
 } /* startup */
@@ -241,10 +241,7 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     ProcTable[procSlot].status = READY;
     //assign stack, allocate the space
     ProcTable[procSlot].stack = malloc(stacksize);
-    //assign state
-    //ProcTable[procSlot].state.start = procCode;
-    //ProcTable[procSlot].state.initial_psr = USLOSS_PsrGet();
-    //ProcTable[procSlot].state.context = NULL;
+    
     
 
     /* Initialize context for this process, but use launch function pointer for
