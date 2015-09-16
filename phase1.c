@@ -103,9 +103,10 @@ void startup()
         USLOSS_Console("halting...\n");
         USLOSS_Halt(1);
     }
-
+    dispatcher();
     USLOSS_Console("startup(): Should not see this message! ");
     USLOSS_Console("Returned from fork1 call that created start1\n");
+    
 
     return;
 } /* startup */
@@ -261,7 +262,6 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
 
     /* More stuff to do here... */
     dump_processes();
-    dispatcher();
     return newPid;
 } /* fork1 */
 
