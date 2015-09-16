@@ -185,7 +185,7 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     else{
         //ensures we only search the table once
         //a check was already done to see if it's full, so it shouldnt be
-        int endValue = nextPid+50;
+        int endValue = nextPid+MAXPROC;
         for (int i = nextPid; i < endValue; ++i)
         {
           //break on the first empty spot in the table
@@ -201,7 +201,8 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     }
     //increments PIDs so they never repeat
     int newPid = nextPid;
-    Current = &ProcTable[0];
+    Current = &ProcTable[newPid%MAXPROC-1];
+    USLOSS_Console("fork1(): ProcTable slot %d selected\n", newPid%MAXPROC-1);
     nextPid++;
 
 
@@ -257,8 +258,10 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     /* for future phase(s) */
     p1_fork(ProcTable[procSlot].pid);
 
+
     /* More stuff to do here... */
     dump_processes();
+    dispatcher();
     return newPid;
 } /* fork1 */
 
@@ -284,7 +287,7 @@ void launch()
     result = Current->start_func(Current->startArg);
 
     if (DEBUG && debugflag)
-        USLOSS_Console("Process %d returned to launch\n", Current->pid);
+        USLOSS_Console("Process %s returned to launch\n", Current->name);
 
     quit(result);
 
@@ -339,10 +342,10 @@ void quit(int code)
 void dispatcher(void)
 {
     USLOSS_Console("Dispacher called..\n");
-    procPtr nextProcess = NULL;
+    //procPtr nextProcess = NULL;
+    USLOSS_ContextSwitch(NULL, &Current->state);
 
-
-    p1_switch(Current->pid, nextProcess->pid);
+    //p1_switch(Current->pid, nextProcess->pid);
 
 } /* dispatcher */
 
@@ -362,11 +365,11 @@ int sentinel (char *dummy)
 {
     if (DEBUG && debugflag)
         USLOSS_Console("sentinel(): called\n");
-    while (1)
+    /*while (1)
     {
         checkDeadlock();
         USLOSS_WaitInt();
-    }
+    }*/
 } /* sentinel */
 
 
