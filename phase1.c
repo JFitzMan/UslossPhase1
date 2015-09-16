@@ -21,6 +21,7 @@ void dispatcher(void);
 void launch();
 static void enableInterrupts();
 static void checkDeadlock();
+void dump_processes(void);
 
 
 /* -------------------------- Globals ------------------------------------- */
@@ -176,7 +177,7 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     /* Assign spot in ProcTable */
 
     //If the first entry is null, then the sentinel still needs to be started
-    if (ProcTable[0].status == EMPTY){
+    if (ProcTable[0].pid == NO_PID){
         USLOSS_Console("fork1(): ProcTable is empty, first process going in 0\n");
         procSlot = 0;
     }
@@ -236,13 +237,19 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     ProcTable[procSlot].stackSize = stacksize;
     //assign status
     ProcTable[procSlot].status = READY;
-
+    //assign stack, allocate the space
+    ProcTable[procSlot].stack = malloc(stacksize);
+    //assign state
+    //ProcTable[procSlot].state.start = procCode;
+    //ProcTable[procSlot].state.initial_psr = USLOSS_PsrGet();
+    //ProcTable[procSlot].state.context = NULL;
     
 
     /* Initialize context for this process, but use launch function pointer for
      * the initial value of the process's program counter (PC)
      */
     procAmount++;
+    USLOSS_Console("fork1(): Switching contexts to new process\n");
     USLOSS_ContextInit(&(ProcTable[procSlot].state), USLOSS_PsrGet(),
                        ProcTable[procSlot].stack,
                        ProcTable[procSlot].stackSize,
@@ -251,6 +258,7 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     p1_fork(ProcTable[procSlot].pid);
 
     /* More stuff to do here... */
+    dump_processes();
     return newPid;
 } /* fork1 */
 
@@ -297,6 +305,7 @@ void launch()
    ------------------------------------------------------------------------ */
 int join(int *code)
 {
+  return -1;
 } /* join */
 
 
@@ -311,6 +320,8 @@ int join(int *code)
    ------------------------------------------------------------------------ */
 void quit(int code)
 {
+    USLOSS_Console("Quit called..\n");
+    dispatcher();
     p1_quit(Current->pid);
 } /* quit */
 
@@ -327,9 +338,12 @@ void quit(int code)
    ----------------------------------------------------------------------- */
 void dispatcher(void)
 {
-    procPtr nextProcess;
+    USLOSS_Console("Dispacher called..\n");
+    procPtr nextProcess = NULL;
+
 
     p1_switch(Current->pid, nextProcess->pid);
+
 } /* dispatcher */
 
 
@@ -378,4 +392,12 @@ void disableInterrupts()
         USLOSS_PsrSet( USLOSS_PsrGet() & ~USLOSS_PSR_CURRENT_INT );
 } /* disableInterrupts */
 
-
+void dump_processes(void){
+    USLOSS_Console("   NAME   |   PID   |   STATE   |   PRIORITY   |   STATUS   \n");
+    USLOSS_Console("------------------------------------------------------------\n");
+    for(int i = 0; i < 6; i++){
+    USLOSS_Console(" %-9s| %-8d| %-10d| %-13d| %-9d\n", ProcTable[i].name, ProcTable[i].pid,
+      ProcTable[i].state, ProcTable[i].priority, ProcTable[i].status);  
+    USLOSS_Console("------------------------------------------------------------\n");
+    }
+}

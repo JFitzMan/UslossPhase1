@@ -43,7 +43,7 @@ union psr_values {
 /* Some useful constants.  Add more as needed... */
 #define NO_CURRENT_PROCESS NULL
 #define NO_PID -1
-#define EMPTY 1
+#define EMPTY 0
 #define MINPRIORITY 5
 #define MAXPRIORITY 1
 #define SENTINELPID 1
