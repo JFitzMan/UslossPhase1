@@ -48,5 +48,8 @@ union psr_values {
 #define MAXPRIORITY 1
 #define SENTINELPID 1
 #define SENTINELPRIORITY (MINPRIORITY + 1)
+
+//ProcStruct Status constants
 #define READY 1
+#define QUIT 2
 

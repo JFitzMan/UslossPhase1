@@ -23,6 +23,7 @@ static void enableInterrupts();
 static void checkDeadlock();
 void dump_processes(void);
 int inKernelMode(char *procName);
+void addToReadyList(procPtr toAdd);
 
 
 /* -------------------------- Globals ------------------------------------- */
@@ -145,11 +146,14 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     if (DEBUG && debugflag)
         USLOSS_Console("fork1(): creating process %s\n", name);
 
-    /* test if in kernel mode; halt if in user mode */
+    /* test if in kernel mode; halt if in user mode 
     if ( (USLOSS_PsrGet()&USLOSS_PSR_CURRENT_MODE)  == 0){
         USLOSS_Console("fork1() realized it's not in kernel mode. Halting... %s\n", name);
         USLOSS_Halt(1);
-    }
+    }*/
+
+    inKernelMode("fork1");
+
     /* Return if stack size is too small */
     if (stacksize < USLOSS_MIN_STACK){
       USLOSS_Console("fork1(): Process stack size is too small.  Halting...\n");
@@ -257,6 +261,11 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     /* for future phase(s) */
     p1_fork(ProcTable[procSlot].pid);
 
+    /*
+    Add to ready list
+    */
+    USLOSS_Console("fork1(): priority of new proccess: %d\n", ProcTable[procSlot].priority);
+
 
     /* More stuff to do here... */
     dump_processes();
@@ -322,8 +331,11 @@ int join(int *code)
 void quit(int code)
 {
     USLOSS_Console("Quit called..\n");
-    dispatcher();
     p1_quit(Current->pid);
+    Current->status = QUIT;
+    USLOSS_Halt(0);
+    dispatcher();
+
 } /* quit */
 
 
@@ -340,12 +352,8 @@ void quit(int code)
 void dispatcher(void)
 {
     USLOSS_Console("Dispacher called..\n");
-    procPtr nextProcess = &Current;
+    procPtr nextProcess = Current;
     USLOSS_ContextSwitch(NULL, &Current->state);
-
-    procPtr nextProcess = &Current;
-
-
     p1_switch(Current->pid, nextProcess->pid);
 
 } /* dispatcher */
@@ -397,10 +405,10 @@ void disableInterrupts()
 } /* disableInterrupts */
 
 void dump_processes(void){
-    USLOSS_Console("   NAME   |   PID   |   STATE   |   PRIORITY   |   STATUS   \n");
+    USLOSS_Console("   NAME   |   PID   |   PRIORITY   |   STATUS   |   STATE   \n");
     USLOSS_Console("------------------------------------------------------------\n");
     for(int i = 0; i < 6; i++){
-    USLOSS_Console(" %-9s| %-8d| %-10d| %-13d| %-9d\n", ProcTable[i].name, ProcTable[i].pid,
+    USLOSS_Console(" %-9s| %-8d| %-13d| %-10d| %-10d\n", ProcTable[i].name, ProcTable[i].pid,
       ProcTable[i].state, ProcTable[i].priority, ProcTable[i].status);  
     USLOSS_Console("------------------------------------------------------------\n");
     }
@@ -413,9 +421,27 @@ void dump_processes(void){
 int inKernelMode(char *procName){
     if( (USLOSS_PSR_CURRENT_MODE & USLOSS_PsrGet()) == 0 ) {
       USLOSS_Console("Kernel Error: Not in kernel mode, may not run %s()", procName);
+      USLOSS_Halt(1);
       return 0;
     }
     else{
       return 1;
     }
+}
+
+void addToReadyList(procPtr toAdd){
+    /*
+if new_node.priority > list.head.priority:
+    new_node.next = list.head
+    list.head = new_node
+else:
+    previous = null
+    for current = list.head:
+        if current.priority < node.priority:
+            previous.next = node
+            node.next = current
+            break loop
+        previous = current
+    */
+
 }
