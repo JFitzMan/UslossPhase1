@@ -22,7 +22,7 @@ void launch();
 static void enableInterrupts();
 static void checkDeadlock();
 void dump_processes(void);
-int inKernelMode(void);
+int inKernelMode(char *procName);
 
 
 /* -------------------------- Globals ------------------------------------- */
@@ -410,8 +410,9 @@ void dump_processes(void){
  *checks the PSR for kernel mode
  *returns true in if its in kernel mode, and false if not
 */
-int inKernelMode(void){
+int inKernelMode(char *procName){
     if( (USLOSS_PSR_CURRENT_MODE & USLOSS_PsrGet()) == 0 ) {
+      USLOSS_Console("Kernel Error: Not in kernel mode, may not run %s()", procName);
       return 0;
     }
     else{
