@@ -22,6 +22,7 @@ void launch();
 static void enableInterrupts();
 static void checkDeadlock();
 void dump_processes(void);
+int inKernelMode(void);
 
 
 /* -------------------------- Globals ------------------------------------- */
@@ -192,7 +193,7 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
           //break on the first empty spot in the table
           if (ProcTable[i%MAXPROC].status == EMPTY)
           {
-            procSlot = i%MAXPROC;
+            procSlot = i%MAXPROC-1;
             break;
           }
           else{
@@ -202,8 +203,8 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     }
     //increments PIDs so they never repeat
     int newPid = nextPid;
-    Current = &ProcTable[newPid%MAXPROC-1];
     USLOSS_Console("fork1(): ProcTable slot %d selected\n", newPid%MAXPROC-1);
+    Current = &ProcTable[newPid%MAXPROC-1];
     nextPid++;
 
 
@@ -339,10 +340,13 @@ void quit(int code)
 void dispatcher(void)
 {
     USLOSS_Console("Dispacher called..\n");
-    //procPtr nextProcess = NULL;
+    procPtr nextProcess = &Current;
     USLOSS_ContextSwitch(NULL, &Current->state);
 
-    //p1_switch(Current->pid, nextProcess->pid);
+    procPtr nextProcess = &Current;
+
+
+    p1_switch(Current->pid, nextProcess->pid);
 
 } /* dispatcher */
 
@@ -399,5 +403,18 @@ void dump_processes(void){
     USLOSS_Console(" %-9s| %-8d| %-10d| %-13d| %-9d\n", ProcTable[i].name, ProcTable[i].pid,
       ProcTable[i].state, ProcTable[i].priority, ProcTable[i].status);  
     USLOSS_Console("------------------------------------------------------------\n");
+    }
+}
+
+/*
+ *checks the PSR for kernel mode
+ *returns true in if its in kernel mode, and false if not
+*/
+int inKernelMode(void){
+    if( (USLOSS_PSR_CURRENT_MODE & USLOSS_PsrGet()) == 0 ) {
+      return 0;
+    }
+    else{
+      return 1;
     }
 }
