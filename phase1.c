@@ -193,7 +193,8 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
         //ensures we only search the table once
         //a check was already done to see if it's full, so it shouldnt be
         int endValue = nextPid+MAXPROC;
-        for (int i = nextPid; i < endValue; ++i)
+		int i;
+        for (i = nextPid; i < endValue; ++i)
         {
           //break on the first empty spot in the table
           if (ProcTable[i%MAXPROC].status == EMPTY)
@@ -413,13 +414,15 @@ void disableInterrupts()
 } /* disableInterrupts */
 
 void dump_processes(void){
-    USLOSS_Console("   NAME   |   PID   |   PRIORITY   |   STATUS   |   STATE   \n");
-    USLOSS_Console("------------------------------------------------------------\n");
-    for(int i = 0; i < 6; i++){
-    USLOSS_Console(" %-9s| %-8d| %-13d| %-10d| %-10d\n", ProcTable[i].name, ProcTable[i].pid,
-      ProcTable[i].state, ProcTable[i].priority, ProcTable[i].status);  
-    USLOSS_Console("------------------------------------------------------------\n");
+    USLOSS_Console("\n   NAME   |   PID   |   PRIORITY   |   STATUS   \n");
+    USLOSS_Console("------------------------------------------------\n");
+    int i;
+	for(i = 0; i < 6; i++){
+    USLOSS_Console(" %-9s| %-8d| %-13d| %-10d\n", ProcTable[i].name, ProcTable[i].pid, 
+			ProcTable[i].priority, ProcTable[i].status);  
+    USLOSS_Console("------------------------------------------------\n");
     }
+	USLOSS_Console("\n");
 }
 
 /*
@@ -458,7 +461,8 @@ void addToReadyList(procPtr toAdd){
   //otherwise, scan until it fits in 
   else{
     procPtr prev = NULL;
-    for (procPtr cur = ReadyList; cur != NULL; cur = cur->nextProcPtr){
+	procPtr cur;
+    for (cur = ReadyList; cur != NULL; cur = cur->nextProcPtr){
       if (cur->priority > toAdd->priority){
         prev->nextProcPtr = toAdd;
         toAdd->nextProcPtr = cur;
