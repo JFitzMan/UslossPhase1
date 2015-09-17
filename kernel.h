@@ -22,6 +22,7 @@ struct procStruct {
    int             childStatus;     /* READY, BLOCKED, QUIT, etc. */
    int             parentPid;  
    int             numChildren;
+   int             isZapped;
 };
 
 /* 

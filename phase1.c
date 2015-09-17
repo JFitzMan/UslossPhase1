@@ -669,21 +669,57 @@ int blockMe(int block_status){
 
   if (block_status <= 10)
   {
-    USLOSS_Console("blockMe(): New status not greater than 10! Halting...");
+    USLOSS_Console("blockMe(): New status not greater than 10! Halting...\n");
     USLOSS_Halt(1);
   }
   
   Current->status = block_status;
-  removeFromReadyList(&Current);
+  removeFromReadyList(Current);
 
   dispatcher();
 
   if (isZapped()) 
   {
     if (DEBUG && debugflag)
-      USLOSS_Console("blockMe(): process was zapped while blocked!");
+      USLOSS_Console("blockMe(): process was zapped while blocked!\n");
     return -1;
   }
+  return 0;
+}
+
+int unblockProc(int pid){
+
+  inKernelMode("unblockProc");
+
+  if (ProcTable[pid%MAXPROC-1].pid == -1){
+    if (DEBUG && debugflag)
+      USLOSS_Console("unblockProc(): Process doesn't exist!\n");
+    return -2;
+  }
+
+  if(pid == getpid()){
+    if (DEBUG && debugflag)
+      USLOSS_Console("unblockProc(): Cannot unblock, process is running!\n");
+    return -2;
+  }
+
+  if (ProcTable[pid%MAXPROC-1].status <= 10){
+    if (DEBUG && debugflag)
+      USLOSS_Console("unblockProc(): Process is blocked on a status less than 11!\n");
+    return -2;
+  }
+
+  if (isZapped()){
+    if (DEBUG && debugflag)
+      USLOSS_Console("unblockProc(): Calling process is zapped!\n");
+    return -1;
+  }
+
+  //if it gets to here, we are all good to go ahead and unblock and add to ReadyList
+
+  ProcTable[pid%MAXPROC-1].status = READY;
+  addToReadyList(&ProcTable[pid%MAXPROC-1]);
+  dispatcher();
   return 0;
 }
 
