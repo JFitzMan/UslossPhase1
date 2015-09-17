@@ -239,7 +239,10 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
 
     //assign start function address to procStruct
     ProcTable[procSlot].start_func = procCode;
-
+    //set child ptr to NULL
+    ProcTable[procSlot].childProcPtr = NULL;
+    //set next ptr to NULL
+    ProcTable[procSlot].nextProcPtr = NULL;
     //assign pid
     ProcTable[procSlot].pid = newPid;
     //assign priority
@@ -342,16 +345,16 @@ int join(int *code)
 void quit(int code)
 {
     USLOSS_Console("Quit called..\n");
-	if ( Current->childProcPtr )
-		USLOSS_Halt(0);
-	else Current->status = QUIT;
-    p1_quit(Current->pid);
+	if ( Current->childProcPtr != NULL){
+    USLOSS_Console("quit(): %s called quit but still has children! Halting...", Current->name);
+    USLOSS_Halt(0);
+  }
+  Current->status = QUIT;
+  p1_quit(Current->pid);
 	removeFromReadyList(Current);
-    Current->status = QUIT;
+  procAmount--;
 
-    //USLOSS_Halt(0);
-
-    dispatcher();
+  dispatcher();
 	
 
 } /* quit */
@@ -369,11 +372,38 @@ void quit(int code)
    ----------------------------------------------------------------------- */
 void dispatcher(void)
 {
+    
+
+    //clear out any quit procs from the ProcTable
+    int i;
+    for(i = 0; i < MAXPROC; i++){
+      if(ProcTable[i].status == QUIT){
+        ProcTable[i].nextProcPtr = NO_CURRENT_PROCESS;
+        ProcTable[i].childProcPtr = NO_CURRENT_PROCESS;
+        ProcTable[i].nextSiblingPtr = NO_CURRENT_PROCESS;
+        ProcTable[i].name[0] = '\0';
+        ProcTable[i].startArg[0] = '\0';
+        ProcTable[i].pid = NO_PID;
+        ProcTable[i].priority = 0;
+        ProcTable[i].start_func = NULL;
+        ProcTable[i].status = EMPTY;
+        ProcTable[i].stack = NULL;
+        ProcTable[i].status = EMPTY;
+        ProcTable[i].childStatus = EMPTY;
+      }
+    }
+
     if (DEBUG && debugflag){
-      USLOSS_Console("dispatcher(): called, but still not doing anything\n");
-      USLOSS_Console("dispatcher(): dumping process table");
+      USLOSS_Console("dispatcher(): called\n");
+      USLOSS_Console("dispatcher(): dumping process table after quits cleared\n");
       dump_processes();
     }
+
+    if(procAmount == 1){
+      USLOSS_Console("dispatcher(): Only sentinel remains, halting..\n");
+      USLOSS_Halt(0);
+    }
+
 
     procPtr oldProcess;
 
@@ -382,6 +412,7 @@ void dispatcher(void)
       oldProcess = NULL;
     else
       oldProcess = Current;
+
 
 
     Current = ReadyList;
@@ -505,5 +536,26 @@ void addToReadyList(procPtr toAdd){
 }
 
 void removeFromReadyList(procPtr toRem){
-	
+	procPtr cur;
+  procPtr prev = NULL;
+
+
+  if(ReadyList == toRem){
+      ReadyList = toRem->nextProcPtr;
+      if (DEBUG && debugflag)
+          USLOSS_Console("removeFromReadyList(): Removed %s from ready list.\n", toRem->name);
+  }
+
+
+    for (cur = ReadyList; cur != NULL; cur = cur->nextProcPtr){
+      if (cur->pid == toRem->pid){
+        prev->nextProcPtr = toRem->nextProcPtr;
+
+        if (DEBUG && debugflag)
+          USLOSS_Console("removeFromReadyList(): Removed %s from ready list.\n", toRem->name);
+
+        break;
+      }
+      prev = cur;
+    }
 }
