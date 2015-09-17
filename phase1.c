@@ -189,6 +189,7 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
 
     //If the first entry is null, then the sentinel still needs to be started
     if (ProcTable[0].pid == NO_PID){
+        if (DEBUG && debugflag)
         USLOSS_Console("fork1(): ProcTable is empty, first process going in 0\n");
         procSlot = 0;
     }
@@ -259,9 +260,19 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
 
     //set parents childProcPts to this proc
     if (Current != NULL){
-      Current->childProcPtr = &ProcTable[procSlot];
+      if (Current->childProcPtr != NULL){
+        Current->childProcPtr->nextSiblingPtr = &ProcTable[procSlot];
+      }
+
+      else{
+        Current->childProcPtr = &ProcTable[procSlot];
+      } 
+
       ProcTable[procSlot].parentPid = Current->pid;
       Current->numChildren++;
+    }
+    else{
+      ProcTable[procSlot].parentPid = 0;
     }
     
     
@@ -282,7 +293,8 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     /*
     Add to ready list
     */
-    USLOSS_Console("fork1(): priority of new proccess: %d\n", ProcTable[procSlot].priority);
+    if (DEBUG && debugflag)
+      USLOSS_Console("fork1(): priority of new proccess: %d\n", ProcTable[procSlot].priority);
     addToReadyList(&ProcTable[procSlot]);
 
 
@@ -387,6 +399,7 @@ int join(int *code)
    ------------------------------------------------------------------------ */
 void quit(int code)
 {
+  if (DEBUG && debugflag)
     USLOSS_Console("Quit called..\n");
 	if ( Current->numChildren > 0){
     USLOSS_Console("quit(): %s called quit but still has children! Halting...", Current->name);
@@ -399,11 +412,23 @@ void quit(int code)
 
   //quitting processes has parents, check their status.
   if( Current->parentPid != 0){
-      if (ProcTable[Current->parentPid%MAXPROC-1].status == JOINBLOCKED){
-        addToReadyList(&ProcTable[Current->parentPid%MAXPROC-1]);
-        ProcTable[Current->parentPid%MAXPROC-1].status = READY;
-        ProcTable[Current->parentPid%MAXPROC-1].numChildren--;
-        ProcTable[Current->parentPid%MAXPROC-1].childStatus = code;
+
+      int parentSlot = Current->parentPid%MAXPROC-1;
+      //if the parent was joinblocked, we may need to ready them
+
+      //if this process is it's only child, it can be set to ready
+      if (ProcTable[parentSlot].status == JOINBLOCKED){
+        addToReadyList(&ProcTable[parentSlot]);
+        ProcTable[parentSlot].status = READY;
+        ProcTable[parentSlot].numChildren--;
+        ProcTable[parentSlot].childStatus = code;
+
+        if (Current->nextSiblingPtr != NULL){
+          ProcTable[parentSlot].childProcPtr = Current->nextSiblingPtr;
+        }
+      }
+      else{
+
       }
   }
 
@@ -503,7 +528,7 @@ int sentinel (char *dummy)
 static void checkDeadlock()
 {
   if(procAmount == 1){
-      USLOSS_Console("checkDeadLock(): Only sentinel remains, halting..\n");
+      USLOSS_Console("All processes completed.\n");
       USLOSS_Halt(0);
     }
 } /* checkDeadlock */

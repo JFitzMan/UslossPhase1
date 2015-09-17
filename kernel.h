@@ -1,5 +1,5 @@
 /* Patrick's DEBUG printing constant... */
-#define DEBUG 1
+#define DEBUG 0
 
 typedef struct procStruct procStruct;
 
