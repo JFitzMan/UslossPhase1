@@ -265,7 +265,7 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     Add to ready list
     */
     USLOSS_Console("fork1(): priority of new proccess: %d\n", ProcTable[procSlot].priority);
-
+    addToReadyList(&ProcTable[procSlot]);
 
     /* More stuff to do here... */
     dump_processes();
@@ -428,20 +428,35 @@ int inKernelMode(char *procName){
       return 1;
     }
 }
-
+/*
+ *Adds process to ReadyList in priority queue form
+ *Ensures the ReadyList pointer is always pointing to the
+ *next process in line to run. 
+ *
+ *UNTESTED for the most part. It compiles, but no promises.
+ */
 void addToReadyList(procPtr toAdd){
-    /*
-if new_node.priority > list.head.priority:
-    new_node.next = list.head
-    list.head = new_node
-else:
-    previous = null
-    for current = list.head:
-        if current.priority < node.priority:
-            previous.next = node
-            node.next = current
-            break loop
-        previous = current
-    */
-
+  //add the sentinel to the ready list if nothing has been added
+  if (ReadyList == NULL)
+  {
+    ReadyList = toAdd;
+  }//end of is
+  //if the priority of the new process is higher than the first
+  //proc in the queue, add it to the head.
+  else if (toAdd->priority < ReadyList->priority){
+    toAdd->nextProcPtr = ReadyList;
+    ReadyList = toAdd;
+  }//end of elseif
+  //otherwise, scan until it fits in 
+  else{
+    procPtr prev = NULL;
+    for (procPtr cur = ReadyList; cur != NULL; cur = cur->nextProcPtr){
+      if (cur->priority > toAdd->priority){
+        prev->nextProcPtr = toAdd;
+        toAdd->nextProcPtr = cur;
+        break;
+      }
+      prev = cur;
+    }
+  }//end of else
 }
