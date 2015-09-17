@@ -56,6 +56,7 @@ union psr_values {
 #define READY 1
 #define QUIT 2
 #define JOINBLOCKED 3
-#define BLOCKED 4
+#define ZAPBLOCKED 4
 #define ZOMBIE 5
+
 

@@ -28,7 +28,7 @@ void removeFromReadyList(procPtr toRem);
 int   zap(int pid); //TODO
 int   isZapped(void);
 int   blockMe(int block_status);
-int   unblockProc(int pid); //TODO
+int   unblockProc(int pid);
 int   readCurStartTime(void); //TODO
 void  timeSlice(void); //TODO
 void  dispatcher(void);
@@ -117,7 +117,7 @@ void startup()
         USLOSS_Console("halting...\n");
         USLOSS_Halt(1);
     }
-    dispatcher();
+    //dispatcher();
     USLOSS_Console("startup(): Should not see this message! ");
     USLOSS_Console("Returned from fork1 call that created start1\n");
 
@@ -310,12 +310,12 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
 
 
     // Cannot let dispacher start running without start1 being added
-    /*
+    
     if (newPid != 1)
     {
       dispatcher();
     }
-    */
+    
     
     return newPid;
 } /* fork1 */
@@ -369,9 +369,16 @@ int join(int *code)
   if (Current->childProcPtr->status == ZOMBIE){
     if (DEBUG && debugflag)
       USLOSS_Console("join(): %s's child is a zombie! Returning...\n", Current->name);
-    *code = Current->childStatus;
+    *code = Current->childProcPtr->status;
+    int kpid = Current->childProcPtr->pid;
+    Current->numChildren--;
     Current->childProcPtr->status = QUIT;
-    return Current->childProcPtr->pid;
+
+    if (Current->childProcPtr->nextSiblingPtr != NULL){
+      Current->childProcPtr = Current->childProcPtr->nextSiblingPtr;
+    }
+
+    return kpid;
   }
   //if the proccess has no children
   else if (Current->childProcPtr == NULL){
@@ -432,15 +439,18 @@ void quit(int code)
       if (ProcTable[parentSlot].status == JOINBLOCKED){
         addToReadyList(&ProcTable[parentSlot]);
         ProcTable[parentSlot].status = READY;
-        ProcTable[parentSlot].numChildren--;
-        ProcTable[parentSlot].childStatus = code;
 
         if (Current->nextSiblingPtr != NULL){
           ProcTable[parentSlot].childProcPtr = Current->nextSiblingPtr;
         }
+        else{
+          ProcTable[parentSlot].childProcPtr = NULL;
+        }
+        ProcTable[parentSlot].numChildren--;
+        ProcTable[parentSlot].childStatus = code;
       }
       else{
-
+        Current->status = ZOMBIE;
       }
   }
 
@@ -720,6 +730,28 @@ int unblockProc(int pid){
   ProcTable[pid%MAXPROC-1].status = READY;
   addToReadyList(&ProcTable[pid%MAXPROC-1]);
   dispatcher();
+  return 0;
+}
+
+int zap(int pid){
+
+  inKernelMode("zap");
+
+  if (pid == getpid() || ProcTable[pid%MAXPROC-1].status == 0)
+  {
+    USLOSS_Console("%s tried to zap itself or non existing process! Halting...\n", Current->name);
+  }
+
+  ProcTable[pid%MAXPROC-1].isZapped = 1;
+  Current->status = ZAPBLOCKED;
+  dispatcher();
+
+  if (Current->isZapped)
+  {
+    if (DEBUG && debugflag)
+      USLOSS_Console("zap(): calling process was zapped while zap blocked.");
+    return -1;
+  }
   return 0;
 }
 
