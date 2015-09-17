@@ -429,6 +429,14 @@ void quit(int code)
 	removeFromReadyList(Current);
   procAmount--;
 
+  if ( isZapped() ) {
+    
+    int zapperPid = Current->pidOfZapper;
+    ProcTable[zapperPid%MAXPROC-1].status = READY;
+    addToReadyList(&ProcTable[zapperPid%MAXPROC-1]);
+
+  }
+
   //quitting processes has parents, check their status.
   if( Current->parentPid != 0){
 
@@ -743,7 +751,9 @@ int zap(int pid){
   }
 
   ProcTable[pid%MAXPROC-1].isZapped = 1;
+  ProcTable[pid%MAXPROC-1].pidOfZapper = getpid();
   Current->status = ZAPBLOCKED;
+  removeFromReadyList(Current);
   dispatcher();
 
   if (Current->isZapped)

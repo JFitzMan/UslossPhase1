@@ -23,6 +23,7 @@ struct procStruct {
    int             parentPid;  
    int             numChildren;
    int             isZapped;
+   int             pidOfZapper;
 };
 
 /* 
