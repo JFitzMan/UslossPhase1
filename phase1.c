@@ -105,7 +105,6 @@ void startup()
         USLOSS_Console("halting...\n");
         USLOSS_Halt(1);
     }
-    dispatcher();
     USLOSS_Console("startup(): Should not see this message! ");
     USLOSS_Console("Returned from fork1 call that created start1\n");
 
@@ -141,11 +140,6 @@ void finish()
 int fork1(char *name, int (*procCode)(char *), char *arg,
           int stacksize, int priority)
 {
-    int procSlot = -1;
-
-    if (DEBUG && debugflag)
-        USLOSS_Console("fork1(): creating process %s\n", name);
-
     /* test if in kernel mode; halt if in user mode 
     if ( (USLOSS_PsrGet()&USLOSS_PSR_CURRENT_MODE)  == 0){
         USLOSS_Console("fork1() realized it's not in kernel mode. Halting... %s\n", name);
@@ -153,6 +147,13 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     }*/
 
     inKernelMode("fork1");
+
+
+    int procSlot = -1;
+
+    if (DEBUG && debugflag)
+        USLOSS_Console("fork1(): creating process %s\n", name);
+
 
     /* Return if stack size is too small */
     if (stacksize < USLOSS_MIN_STACK){
@@ -268,8 +269,15 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     USLOSS_Console("fork1(): priority of new proccess: %d\n", ProcTable[procSlot].priority);
     addToReadyList(&ProcTable[procSlot]);
 
-    /* More stuff to do here... */
     dump_processes();
+
+    // Cannot let dispacher start running without start1 being added
+    if (newPid != 1)
+    {
+      dispatcher();
+    }
+
+    
     return newPid;
 } /* fork1 */
 
