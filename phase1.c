@@ -21,10 +21,19 @@ void dispatcher(void);
 void launch();
 static void enableInterrupts();
 static void checkDeadlock();
-void dump_processes(void);
+void dumpProcesses(void);
 int inKernelMode(char *procName);
 void addToReadyList(procPtr toAdd);
 void removeFromReadyList(procPtr toRem);
+int   zap(int pid); //TODO
+int   isZapped(void);
+int   blockMe(int block_status);
+int   unblockProc(int pid); //TODO
+int   readCurStartTime(void); //TODO
+void  timeSlice(void); //TODO
+void  dispatcher(void);
+int   readtime(void);  //TOO
+int   getpid(void);
 
 
 /* -------------------------- Globals ------------------------------------- */
@@ -257,6 +266,8 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     ProcTable[procSlot].status = READY;
     //assign stack, allocate the space
     ProcTable[procSlot].stack = malloc(stacksize);
+    //set as not zapped
+    ProcTable[procSlot].isZapped = 0;
 
     //set parents childProcPts to this proc
     if (Current != NULL){
@@ -367,7 +378,7 @@ int join(int *code)
       if (DEBUG && debugflag)
         USLOSS_Console("join(): %s has no children. Returning..\n", Current->name);
       *code = 0;
-      return -1;
+      return -2;
   }
   //this means the child process hasn't quit, joinblock parent
   else{
@@ -379,6 +390,7 @@ int join(int *code)
       removeFromReadyList(Current);
       int kpid = Current->childProcPtr->pid;
       dispatcher();
+      //TODO CHECK IF THE FUNCTION WAS ZAPPED BEFORE RETURNING THINGS MIGHT HAPPEN
       *code = Current->childStatus;
       return kpid;
        
@@ -476,7 +488,7 @@ void dispatcher(void)
     if (DEBUG && debugflag){
       USLOSS_Console("dispatcher(): called\n");
       USLOSS_Console("dispatcher(): dumping process table after quits cleared\n");
-      dump_processes();
+      dumpProcesses();
     }
 
     procPtr oldProcess;
@@ -550,7 +562,7 @@ void disableInterrupts()
         USLOSS_PsrSet( USLOSS_PsrGet() & ~USLOSS_PSR_CURRENT_INT );
 } /* disableInterrupts */
 
-void dump_processes(void){
+void dumpProcesses(void){
     USLOSS_Console("\n   NAME   |   PID   |   PRIORITY   |   STATUS   |   PPID   | NumChildren |\n");
     USLOSS_Console("----------------------------------------------------------------------------\n");
     int i;
@@ -642,3 +654,37 @@ void removeFromReadyList(procPtr toRem){
       prev = cur;
     }
 }
+
+int getpid(){
+  return Current->pid;
+}
+
+int isZapped(){
+  return Current->isZapped;
+}
+
+int blockMe(int block_status){
+
+  inKernelMode("blockMe");
+
+  if (block_status <= 10)
+  {
+    USLOSS_Console("blockMe(): New status not greater than 10! Halting...");
+    USLOSS_Halt(1);
+  }
+  
+  Current->status = block_status;
+  removeFromReadyList(&Current);
+
+  dispatcher();
+
+  if (isZapped()) 
+  {
+    if (DEBUG && debugflag)
+      USLOSS_Console("blockMe(): process was zapped while blocked!");
+    return -1;
+  }
+  return 0;
+}
+
+
