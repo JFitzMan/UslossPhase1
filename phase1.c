@@ -24,6 +24,7 @@ static void checkDeadlock();
 void dump_processes(void);
 int inKernelMode(char *procName);
 void addToReadyList(procPtr toAdd);
+void removeFromReadyList(procPtr toRem);
 
 
 /* -------------------------- Globals ------------------------------------- */
@@ -341,10 +342,17 @@ int join(int *code)
 void quit(int code)
 {
     USLOSS_Console("Quit called..\n");
+	if ( Current->childProcPtr )
+		USLOSS_Halt(0);
+	else Current->status = QUIT;
     p1_quit(Current->pid);
+	removeFromReadyList(Current);
     Current->status = QUIT;
+
     //USLOSS_Halt(0);
+
     dispatcher();
+	
 
 } /* quit */
 
@@ -494,4 +502,8 @@ void addToReadyList(procPtr toAdd){
         USLOSS_Console("addToReadyList(): Added %s to ready list.\n", toAdd->name);
         USLOSS_Console("addToReadyList(): %s is at the front of the list\n", ReadyList->name);
       }
+}
+
+void removeFromReadyList(procPtr toRem){
+	
 }
