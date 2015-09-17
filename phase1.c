@@ -209,8 +209,9 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     }
     //increments PIDs so they never repeat
     int newPid = nextPid;
-    USLOSS_Console("fork1(): ProcTable slot %d selected\n", newPid%MAXPROC-1);
-    Current = &ProcTable[newPid%MAXPROC-1];
+    if (DEBUG && debugflag)
+      USLOSS_Console("fork1(): ProcTable slot %d selected\n", newPid%MAXPROC-1);
+    //Current = &ProcTable[newPid%MAXPROC-1];
     nextPid++;
 
 
@@ -255,7 +256,8 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
      * the initial value of the process's program counter (PC)
      */
     procAmount++;
-    USLOSS_Console("fork1(): Switching contexts to new process\n");
+    if (DEBUG && debugflag)
+      USLOSS_Console("fork1(): Switching contexts to new process\n");
     USLOSS_ContextInit(&(ProcTable[procSlot].state), USLOSS_PsrGet(),
                        ProcTable[procSlot].stack,
                        ProcTable[procSlot].stackSize,
@@ -269,7 +271,6 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     USLOSS_Console("fork1(): priority of new proccess: %d\n", ProcTable[procSlot].priority);
     addToReadyList(&ProcTable[procSlot]);
 
-    dump_processes();
 
     // Cannot let dispacher start running without start1 being added
     if (newPid != 1)
@@ -342,7 +343,7 @@ void quit(int code)
     USLOSS_Console("Quit called..\n");
     p1_quit(Current->pid);
     Current->status = QUIT;
-    USLOSS_Halt(0);
+    //USLOSS_Halt(0);
     dispatcher();
 
 } /* quit */
@@ -360,10 +361,27 @@ void quit(int code)
    ----------------------------------------------------------------------- */
 void dispatcher(void)
 {
-    USLOSS_Console("Dispacher called..\n");
-    procPtr nextProcess = Current;
+    if (DEBUG && debugflag){
+      USLOSS_Console("dispatcher(): called, but still not doing anything\n");
+      USLOSS_Console("dispatcher(): dumping process table");
+      dump_processes();
+    }
+
+    procPtr oldProcess;
+
+    //for some reason oldProcess = Current wouldnt work if Current was NULL. This solves it
+    if (Current == NULL)
+      oldProcess = NULL;
+    else
+      oldProcess = Current;
+
+
+    Current = ReadyList;
+
     USLOSS_ContextSwitch(NULL, &Current->state);
-    p1_switch(Current->pid, nextProcess->pid);
+    p1_switch(oldProcess->pid, Current->pid);
+
+   
 
 } /* dispatcher */
 
@@ -471,4 +489,9 @@ void addToReadyList(procPtr toAdd){
       prev = cur;
     }
   }//end of else
+
+  if (DEBUG && debugflag){
+        USLOSS_Console("addToReadyList(): Added %s to ready list.\n", toAdd->name);
+        USLOSS_Console("addToReadyList(): %s is at the front of the list\n", ReadyList->name);
+      }
 }
