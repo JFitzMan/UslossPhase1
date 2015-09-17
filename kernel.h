@@ -20,7 +20,8 @@ struct procStruct {
    unsigned int    stackSize;
    int             status;   
    int             childStatus;     /* READY, BLOCKED, QUIT, etc. */
-   /* other fields as needed... */
+   int             parentPid;  
+   int             numChildren;
 };
 
 /* 
@@ -55,4 +56,5 @@ union psr_values {
 #define QUIT 2
 #define JOINBLOCKED 3
 #define BLOCKED 4
+#define ZOMBIE 5
 

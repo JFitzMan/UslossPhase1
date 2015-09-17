@@ -74,6 +74,8 @@ void startup()
       ProcTable[i].startArg[0] = '\0';
       ProcTable[i].pid = NO_PID;
       ProcTable[i].status = EMPTY;
+      ProcTable[i].parentPid = EMPTY;
+      ProcTable[i].numChildren = EMPTY;
     }
 
 
@@ -106,10 +108,11 @@ void startup()
         USLOSS_Console("halting...\n");
         USLOSS_Halt(1);
     }
+    dispatcher();
     USLOSS_Console("startup(): Should not see this message! ");
     USLOSS_Console("Returned from fork1 call that created start1\n");
 
-
+    
     return;
 } /* startup */
 
@@ -253,6 +256,13 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     ProcTable[procSlot].status = READY;
     //assign stack, allocate the space
     ProcTable[procSlot].stack = malloc(stacksize);
+
+    //set parents childProcPts to this proc
+    if (Current != NULL){
+      Current->childProcPtr = &ProcTable[procSlot];
+      ProcTable[procSlot].parentPid = Current->pid;
+      Current->numChildren++;
+    }
     
     
 
@@ -261,7 +271,7 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
      */
     procAmount++;
     if (DEBUG && debugflag)
-      USLOSS_Console("fork1(): Switching contexts to new process\n");
+      USLOSS_Console("fork1(): initializing context for new process\n");
     USLOSS_ContextInit(&(ProcTable[procSlot].state), USLOSS_PsrGet(),
                        ProcTable[procSlot].stack,
                        ProcTable[procSlot].stackSize,
@@ -277,11 +287,12 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
 
 
     // Cannot let dispacher start running without start1 being added
+    /*
     if (newPid != 1)
     {
       dispatcher();
     }
-
+    */
     
     return newPid;
 } /* fork1 */
@@ -329,6 +340,35 @@ void launch()
    ------------------------------------------------------------------------ */
 int join(int *code)
 {
+  if (DEBUG && debugflag)
+    USLOSS_Console("join(): called by %s\n", Current->name);
+  //if child has already quit
+  if (Current->childProcPtr->status == ZOMBIE){
+    if (DEBUG && debugflag)
+      USLOSS_Console("join(): %s's child is a zombie! Returning...\n", Current->name);
+    *code = Current->childStatus;
+    Current->childProcPtr->status = QUIT;
+    return Current->childProcPtr->pid;
+  }
+  //if the proccess has no children
+  else if (Current->childProcPtr == NULL){
+      if (DEBUG && debugflag)
+        USLOSS_Console("join(): %s has no children. Returning..\n", Current->name);
+      *code = 0;
+      return -1;
+  }
+  //this means the child process hasn't quit, joinblock parent
+  else{
+      if (DEBUG && debugflag)
+        USLOSS_Console("join(): %s's child hasn't quit! Join Blocking...\n", Current->name);
+
+      //joinblock and remove Current from ReadyList
+      Current->status = JOINBLOCKED;
+      removeFromReadyList(Current);
+      dispatcher();
+
+  }
+
   return -1;
 } /* join */
 
@@ -390,6 +430,8 @@ void dispatcher(void)
         ProcTable[i].stack = NULL;
         ProcTable[i].status = EMPTY;
         ProcTable[i].childStatus = EMPTY;
+        ProcTable[i].parentPid = EMPTY;
+        ProcTable[i].numChildren = EMPTY;
       }
     }
 
@@ -469,13 +511,13 @@ void disableInterrupts()
 } /* disableInterrupts */
 
 void dump_processes(void){
-    USLOSS_Console("\n   NAME   |   PID   |   PRIORITY   |   STATUS   \n");
-    USLOSS_Console("------------------------------------------------\n");
+    USLOSS_Console("\n   NAME   |   PID   |   PRIORITY   |   STATUS   |   PPID   | NumChildren |\n");
+    USLOSS_Console("----------------------------------------------------------------------------\n");
     int i;
 	for(i = 0; i < 6; i++){
-    USLOSS_Console(" %-9s| %-8d| %-13d| %-10d\n", ProcTable[i].name, ProcTable[i].pid, 
-			ProcTable[i].priority, ProcTable[i].status);  
-    USLOSS_Console("------------------------------------------------\n");
+    USLOSS_Console(" %-9s| %-8d| %-13d| %-10d| %-9d| %-12d\n", ProcTable[i].name, ProcTable[i].pid, 
+			ProcTable[i].priority, ProcTable[i].status, ProcTable[i].parentPid, ProcTable[i].numChildren);  
+    USLOSS_Console("----------------------------------------------------------------------------\n");
     }
 	USLOSS_Console("\n");
 }
