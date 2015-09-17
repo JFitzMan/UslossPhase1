@@ -399,12 +399,6 @@ void dispatcher(void)
       dump_processes();
     }
 
-    if(procAmount == 1){
-      USLOSS_Console("dispatcher(): Only sentinel remains, halting..\n");
-      USLOSS_Halt(0);
-    }
-
-
     procPtr oldProcess;
 
     //for some reason oldProcess = Current wouldnt work if Current was NULL. This solves it
@@ -440,17 +434,21 @@ int sentinel (char *dummy)
 {
     if (DEBUG && debugflag)
         USLOSS_Console("sentinel(): called\n");
-    /*while (1)
+    while (1)
     {
         checkDeadlock();
         USLOSS_WaitInt();
-    }*/
+    }
 } /* sentinel */
 
 
 /* check to determine if deadlock has occurred... */
 static void checkDeadlock()
 {
+  if(procAmount == 1){
+      USLOSS_Console("checkDeadLock(): Only sentinel remains, halting..\n");
+      USLOSS_Halt(0);
+    }
 } /* checkDeadlock */
 
 
@@ -534,7 +532,10 @@ void addToReadyList(procPtr toAdd){
         USLOSS_Console("addToReadyList(): %s is at the front of the list\n", ReadyList->name);
       }
 }
-
+/*
+ *Removes toRem from the ready list.
+ *
+ */
 void removeFromReadyList(procPtr toRem){
 	procPtr cur;
   procPtr prev = NULL;
