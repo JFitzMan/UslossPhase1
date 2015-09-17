@@ -365,8 +365,11 @@ int join(int *code)
       //joinblock and remove Current from ReadyList
       Current->status = JOINBLOCKED;
       removeFromReadyList(Current);
+      int kpid = Current->childProcPtr->pid;
       dispatcher();
-
+      *code = Current->childStatus;
+      return kpid;
+       
   }
 
   return -1;
@@ -385,7 +388,7 @@ int join(int *code)
 void quit(int code)
 {
     USLOSS_Console("Quit called..\n");
-	if ( Current->childProcPtr != NULL){
+	if ( Current->numChildren > 0){
     USLOSS_Console("quit(): %s called quit but still has children! Halting...", Current->name);
     USLOSS_Halt(0);
   }
@@ -393,6 +396,16 @@ void quit(int code)
   p1_quit(Current->pid);
 	removeFromReadyList(Current);
   procAmount--;
+
+  //quitting processes has parents, check their status.
+  if( Current->parentPid != 0){
+      if (ProcTable[Current->parentPid%MAXPROC-1].status == JOINBLOCKED){
+        addToReadyList(&ProcTable[Current->parentPid%MAXPROC-1]);
+        ProcTable[Current->parentPid%MAXPROC-1].status = READY;
+        ProcTable[Current->parentPid%MAXPROC-1].numChildren--;
+        ProcTable[Current->parentPid%MAXPROC-1].childStatus = code;
+      }
+  }
 
   dispatcher();
 	
@@ -444,19 +457,21 @@ void dispatcher(void)
     procPtr oldProcess;
 
     //for some reason oldProcess = Current wouldnt work if Current was NULL. This solves it
-    if (Current == NULL)
+    if (Current == NULL){
       oldProcess = NULL;
-    else
+      Current = ReadyList;
+      if (DEBUG && debugflag)
+        USLOSS_Console("dispatcher(): switching contexts to run %s\n", Current->name);
+      USLOSS_ContextSwitch(NULL, &Current->state);
+    }
+    else{
       oldProcess = Current;
-
-
-
-    Current = ReadyList;
-
-    USLOSS_ContextSwitch(NULL, &Current->state);
-    p1_switch(oldProcess->pid, Current->pid);
-
-   
+      Current = ReadyList;
+      if (DEBUG && debugflag)
+        USLOSS_Console("dispatcher(): switching contexts to run %s\n", Current->name);
+      USLOSS_ContextSwitch(&oldProcess->state, &Current->state);
+      p1_switch(oldProcess->pid, Current->pid);
+    }
 
 } /* dispatcher */
 
