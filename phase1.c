@@ -85,6 +85,7 @@ void startup()
       ProcTable[i].status = EMPTY;
       ProcTable[i].parentPid = EMPTY;
       ProcTable[i].numChildren = EMPTY;
+	  ProcTable[i].sliceStartTime = 0;
     }
 
 
@@ -421,9 +422,9 @@ void quit(int code)
   if (DEBUG && debugflag)
     USLOSS_Console("Quit called..\n");
 	if ( Current->numChildren > 0){
-    USLOSS_Console("quit(): %s called quit but still has children! Halting...", Current->name);
-    USLOSS_Halt(0);
-  }
+		USLOSS_Console("quit(): %s called quit but still has children! Halting...", Current->name);
+		USLOSS_Halt(0);
+	}
   Current->status = QUIT;
   p1_quit(Current->pid);
 	removeFromReadyList(Current);
@@ -765,4 +766,16 @@ int zap(int pid){
   return 0;
 }
 
+int readCurStartTime(void){
+	int time;
+	time = USLOSS_Clock(); //Gets time (microseconds) from USLOSS
+	return time;
+}
 
+void timeSlice(void){
+
+} 
+
+int readtime(void){
+	
+} 

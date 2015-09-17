@@ -24,6 +24,7 @@ struct procStruct {
    int             numChildren;
    int             isZapped;
    int             pidOfZapper;
+   int 			   sliceStartTime;
 };
 
 /* 
