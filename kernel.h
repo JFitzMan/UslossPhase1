@@ -18,7 +18,8 @@ struct procStruct {
    int (* start_func) (char *);   /* function where process begins -- launch */
    char           *stack;
    unsigned int    stackSize;
-   int             status;        /* READY, BLOCKED, QUIT, etc. */
+   int             status;   
+   int             childStatus;     /* READY, BLOCKED, QUIT, etc. */
    /* other fields as needed... */
 };
 
@@ -52,4 +53,6 @@ union psr_values {
 //ProcStruct Status constants
 #define READY 1
 #define QUIT 2
+#define JOINBLOCKED 3
+#define BLOCKED 4
 
