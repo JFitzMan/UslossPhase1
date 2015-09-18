@@ -486,6 +486,7 @@ void quit(int code)
         ProcTable[parentSlot].numChildren--;
         ProcTable[parentSlot].childStatus = code;
       }
+      //Parent hasn't called join yet
       else{
         Current->status = ZOMBIE;
       }
@@ -544,12 +545,13 @@ void dispatcher(void)
 
     //for some reason oldProcess = Current wouldnt work if Current was NULL. This solves it
     if (Current == NULL){
-		oldProcess = NULL;
-		Current = ReadyList;
-		if (DEBUG && debugflag)
-			USLOSS_Console("dispatcher(): switching contexts to run %s\n", Current->name);
-    Current->sliceStartTime = USLOSS_Clock();
-		USLOSS_ContextSwitch(NULL, &Current->state);
+		  oldProcess = NULL;
+		  Current = ReadyList;
+		  if (DEBUG && debugflag)
+		  	USLOSS_Console("dispatcher(): switching contexts to run %s\n", Current->name);
+      Current->sliceStartTime = USLOSS_Clock();
+      Current->status = RUNNING;
+		  USLOSS_ContextSwitch(NULL, &Current->state);
     }
     else{
       oldProcess = Current;
@@ -557,6 +559,7 @@ void dispatcher(void)
       if (DEBUG && debugflag)
         USLOSS_Console("dispatcher(): switching contexts to run %s\n", Current->name);
       Current->sliceStartTime = USLOSS_Clock();
+      Current->status = RUNNING;
       oldProcess->runTime = readtime() + oldProcess->runTime;
       USLOSS_ContextSwitch(&oldProcess->state, &Current->state);
       p1_switch(oldProcess->pid, Current->pid);
@@ -880,6 +883,7 @@ void  clockHandler(){
   {
     removeFromReadyList(Current);
     addToReadyList(Current);
+    Current->status = READY;
     //Current -> runTime = 0;
     dispatcher();
   }
