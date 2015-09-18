@@ -198,10 +198,10 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     /* Assign spot in ProcTable */
 
     //If the first entry is null, then the sentinel still needs to be started
-    if (ProcTable[0].pid == NO_PID){
+    if (ProcTable[1].pid == NO_PID){
         if (DEBUG && debugflag)
         USLOSS_Console("fork1(): ProcTable is empty, first process going in 0\n");
-        procSlot = 0;
+        procSlot = 1;
     }
     //otherise, assign the next empty slot and pid
     else{
