@@ -98,8 +98,9 @@ void startup()
     ReadyList = NULL;
 
     /* Initialize the clock interrupt handler */
-    disableInterrupts();
-    //USLOSS_IntVec[0](0, clockHandler);
+    USLOSS_IntVec[0] = clockHandler;
+    enableInterrupts();
+    
 
     /* startup a sentinel process */
     if (DEBUG && debugflag)
@@ -463,6 +464,22 @@ void quit(int code)
         if (Current->nextSiblingPtr != NULL){
           ProcTable[parentSlot].childProcPtr = Current->nextSiblingPtr;
         }
+        else if (ProcTable[parentSlot].numChildren > 1){
+
+          procPtr cur;
+          procPtr prev = NULL;
+
+          for (cur = ProcTable[parentSlot].childProcPtr; cur != NULL; cur = cur->nextSiblingPtr)
+          {
+            if (cur->pid == Current->pid) 
+            {
+              prev->nextSiblingPtr = NULL;
+            }
+            prev = cur;
+          }
+
+
+        }
         else{
           ProcTable[parentSlot].childProcPtr = NULL;
         }
@@ -512,13 +529,15 @@ void dispatcher(void)
         ProcTable[i].childStatus = EMPTY;
         ProcTable[i].parentPid = EMPTY;
         ProcTable[i].numChildren = EMPTY;
+        ProcTable[i].runTime = 0;
+        ProcTable[i].sliceStartTime = 0;
       }
     }
 
     if (DEBUG && debugflag){
       USLOSS_Console("dispatcher(): called\n");
       USLOSS_Console("dispatcher(): dumping process table after quits cleared\n");
-      dumpProcesses();
+      //dumpProcesses();
     }
 
     procPtr oldProcess;
@@ -529,7 +548,7 @@ void dispatcher(void)
 		Current = ReadyList;
 		if (DEBUG && debugflag)
 			USLOSS_Console("dispatcher(): switching contexts to run %s\n", Current->name);
-		Current->sliceStartTime = USLOSS_Clock(); //USLOSS_Clock provides microseconds
+    Current->sliceStartTime = USLOSS_Clock();
 		USLOSS_ContextSwitch(NULL, &Current->state);
     }
     else{
@@ -537,8 +556,9 @@ void dispatcher(void)
       Current = ReadyList;
       if (DEBUG && debugflag)
         USLOSS_Console("dispatcher(): switching contexts to run %s\n", Current->name);
+      Current->sliceStartTime = USLOSS_Clock();
+      oldProcess->runTime = readtime() + oldProcess->runTime;
       USLOSS_ContextSwitch(&oldProcess->state, &Current->state);
-	  Current->sliceStartTime = USLOSS_Clock();
       p1_switch(oldProcess->pid, Current->pid);
     }
 
@@ -575,6 +595,10 @@ static void checkDeadlock()
       USLOSS_Console("All processes completed.\n");
       USLOSS_Halt(0);
     }
+  else if (ReadyList->priority == 6){
+    USLOSS_Console("Processes still present. Halting...\n");
+    USLOSS_Halt(1);
+  }
 } /* checkDeadlock */
 
 
@@ -594,8 +618,24 @@ void disableInterrupts()
         USLOSS_PsrSet( USLOSS_PsrGet() & ~USLOSS_PSR_CURRENT_INT );
 } /* disableInterrupts */
 
+        /*
+ * Enables the interrupts.
+ */
+void enableInterrupts()
+{
+    /* turn the interrupts OFF iff we are in kernel mode */
+    if( (USLOSS_PSR_CURRENT_MODE & USLOSS_PsrGet()) == 0 ) {
+        //not in kernel mode
+        USLOSS_Console("Kernel Error: Not in kernel mode, may not ");
+        USLOSS_Console("enableInterrupts interrupts\n");
+        USLOSS_Halt(1);
+    } else
+        /* We ARE in kernel mode */
+        USLOSS_PsrSet( USLOSS_PsrGet() | USLOSS_PSR_CURRENT_INT );
+} /* enableInterrupts */
+
 void dumpProcesses(void){
-    USLOSS_Console("\n   NAME   |   PID   |   PRIORITY   |  STATUS   |   PPID   | NumChildren |\n");
+    USLOSS_Console("\n   NAME   |   PID   |   PRIORITY   |  STATUS   |   PPID   | NumChildren | RunTime |\n");
     USLOSS_Console("-------------------------------------------------------------------------\n");
     int i;
 	for(i = 0; i < MAXPROC; i++){
@@ -622,7 +662,7 @@ void dumpProcesses(void){
 			default:
 				USLOSS_Console("           ");
 		}
-		USLOSS_Console("| %-9d| %-12d\n", ProcTable[i].parentPid, ProcTable[i].numChildren);
+		USLOSS_Console("| %-9d| %-12d| %-8d\n", ProcTable[i].parentPid, ProcTable[i].numChildren, ProcTable[i].runTime);
 		USLOSS_Console("-------------------------------------------------------------------------\n");
     }
 	
@@ -665,7 +705,7 @@ void addToReadyList(procPtr toAdd){
   //otherwise, scan until it fits in 
   else{
     procPtr prev = NULL;
-	procPtr cur;
+	  procPtr cur;
     for (cur = ReadyList; cur != NULL; cur = cur->nextProcPtr){
       if (cur->priority > toAdd->priority){
         prev->nextProcPtr = toAdd;
@@ -787,8 +827,8 @@ int zap(int pid){
     USLOSS_Console("%s tried to zap itself or non existing process! Halting...\n", Current->name);
   }
 
-  ProcTable[pid%MAXPROC-1].isZapped = 1;
-  ProcTable[pid%MAXPROC-1].pidOfZapper = getpid();
+  ProcTable[pid%MAXPROC].isZapped = 1;
+  ProcTable[pid%MAXPROC].pidOfZapper = getpid();
   Current->status = ZAPBLOCKED;
   removeFromReadyList(Current);
   dispatcher();
@@ -815,30 +855,32 @@ void timeSlice(void){
 	else return;	
 } 
 
+
 int readtime(void){
 	int curTime, startTime, time;
-	
-	startTime = readCurStartTime
-	startTime = startTime / 1000; //1000 microseconds = 1 millisecond
+
+	startTime = readCurStartTime();
 	
 	curTime = USLOSS_Clock();
-	curTime = curTime / 1000; 
 	
 	time = curTime - startTime;	
+
 	return time;
 } 
 
 void  clockHandler(){
+  //USLOSS_Console("Got here\n");
 
-  int previousRunTime = Current -> runTime;
+  //int previousRunTime = Current -> runTime;
 
-  Current->runTime = USLOSS_Clock() - Current ->sliceStartTime;
+  int timeRunning = USLOSS_Clock() - Current->sliceStartTime;
+  //USLOSS_Console("runTime: %d\n", Current -> runTime);
 
-  if (Current->runTime > MAXTIME)  
+  if (timeRunning > MAXTIME)  
   {
     removeFromReadyList(Current);
     addToReadyList(Current);
-    Current -> runTime = Current->runTime + previousRunTime;
+    //Current -> runTime = 0;
     dispatcher();
   }
 

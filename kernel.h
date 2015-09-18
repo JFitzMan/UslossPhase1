@@ -1,6 +1,7 @@
 /* Patrick's DEBUG printing constant... */
 #define DEBUG 0
 
+
 typedef struct procStruct procStruct;
 
 typedef struct procStruct * procPtr;
@@ -24,8 +25,8 @@ struct procStruct {
    int             numChildren;
    int             isZapped;
    int             pidOfZapper;
-   int 			   sliceStartTime;
-   int			   runTime;
+   int 			       sliceStartTime;
+   int			       runTime;
 };
 
 /* 
@@ -50,7 +51,7 @@ union psr_values {
 #define NO_CURRENT_PROCESS NULL
 #define NO_PID -1
 #define EMPTY 0
-#define MAXTIME 80
+#define MAXTIME 80000
 #define MINPRIORITY 5
 #define MAXPRIORITY 1
 #define SENTINELPID 1
@@ -62,5 +63,6 @@ union psr_values {
 #define JOINBLOCKED 3
 #define ZAPBLOCKED 4
 #define ZOMBIE 5
+#define RUNNING 6
 
 
