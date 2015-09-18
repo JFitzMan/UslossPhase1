@@ -523,15 +523,14 @@ void dispatcher(void)
 
     procPtr oldProcess;
 
-
     //for some reason oldProcess = Current wouldnt work if Current was NULL. This solves it
     if (Current == NULL){
-      oldProcess = NULL;
-      Current = ReadyList;
-      if (DEBUG && debugflag)
-        USLOSS_Console("dispatcher(): switching contexts to run %s\n", Current->name);
-      Current->sliceStartTime = USLOSS_Clock();
-      USLOSS_ContextSwitch(NULL, &Current->state);
+		oldProcess = NULL;
+		Current = ReadyList;
+		if (DEBUG && debugflag)
+			USLOSS_Console("dispatcher(): switching contexts to run %s\n", Current->name);
+		Current->sliceStartTime = USLOSS_Clock(); //USLOSS_Clock provides microseconds
+		USLOSS_ContextSwitch(NULL, &Current->state);
     }
     else{
       oldProcess = Current;
@@ -539,7 +538,7 @@ void dispatcher(void)
       if (DEBUG && debugflag)
         USLOSS_Console("dispatcher(): switching contexts to run %s\n", Current->name);
       USLOSS_ContextSwitch(&oldProcess->state, &Current->state);
-      Current->sliceStartTime = USLOSS_Clock();
+	  Current->sliceStartTime = USLOSS_Clock();
       p1_switch(oldProcess->pid, Current->pid);
     }
 
@@ -596,14 +595,37 @@ void disableInterrupts()
 } /* disableInterrupts */
 
 void dumpProcesses(void){
-    USLOSS_Console("\n   NAME   |   PID   |   PRIORITY   |   STATUS   |   PPID   | NumChildren |\n");
-    USLOSS_Console("----------------------------------------------------------------------------\n");
+    USLOSS_Console("\n   NAME   |   PID   |   PRIORITY   |  STATUS   |   PPID   | NumChildren |\n");
+    USLOSS_Console("-------------------------------------------------------------------------\n");
     int i;
 	for(i = 0; i < MAXPROC; i++){
-    USLOSS_Console(" %-9s| %-8d| %-13d| %-10d| %-9d| %-12d\n", ProcTable[i].name, ProcTable[i].pid, 
-			ProcTable[i].priority, ProcTable[i].status, ProcTable[i].parentPid, ProcTable[i].numChildren);  
-    USLOSS_Console("----------------------------------------------------------------------------\n");
+		USLOSS_Console(" %-9s| %-8d| %-13d|", ProcTable[i].name, ProcTable[i].pid, ProcTable[i].priority);
+		switch(ProcTable[i].status){
+			case READY:
+				USLOSS_Console("  READY    ");
+				break;
+			case RUNNING:
+				USLOSS_Console("  RUNNING  ");
+				break;
+			case QUIT:
+				USLOSS_Console("   QUIT    ");
+				break;
+			case JOINBLOCKED:
+				USLOSS_Console("  JBLOCKED ");
+				break;
+			case ZAPBLOCKED:
+				USLOSS_Console("  ZBLOCKED ");
+				break;
+			case ZOMBIE:
+				USLOSS_Console("  ZOMBIE   ");
+				break;
+			default:
+				USLOSS_Console("           ");
+		}
+		USLOSS_Console("| %-9d| %-12d\n", ProcTable[i].parentPid, ProcTable[i].numChildren);
+		USLOSS_Console("-------------------------------------------------------------------------\n");
     }
+	
 	USLOSS_Console("\n");
 }
 
@@ -724,7 +746,7 @@ int unblockProc(int pid){
 
   inKernelMode("unblockProc");
 
-  if (ProcTable[pid%MAXPROC].pid == -1){
+  if (ProcTable[pid%MAXPROC-1].pid == -1){
     if (DEBUG && debugflag)
       USLOSS_Console("unblockProc(): Process doesn't exist!\n");
     return -2;
@@ -736,7 +758,7 @@ int unblockProc(int pid){
     return -2;
   }
 
-  if (ProcTable[pid%MAXPROC].status <= 10){
+  if (ProcTable[pid%MAXPROC-1].status <= 10){
     if (DEBUG && debugflag)
       USLOSS_Console("unblockProc(): Process is blocked on a status less than 11!\n");
     return -2;
@@ -750,8 +772,8 @@ int unblockProc(int pid){
 
   //if it gets to here, we are all good to go ahead and unblock and add to ReadyList
 
-  ProcTable[pid%MAXPROC].status = READY;
-  addToReadyList(&ProcTable[pid%MAXPROC]);
+  ProcTable[pid%MAXPROC-1].status = READY;
+  addToReadyList(&ProcTable[pid%MAXPROC-1]);
   dispatcher();
   return 0;
 }
@@ -760,13 +782,13 @@ int zap(int pid){
 
   inKernelMode("zap");
 
-  if (pid == getpid() || ProcTable[pid%MAXPROC].status == 0)
+  if (pid == getpid() || ProcTable[pid%MAXPROC-1].status == 0)
   {
     USLOSS_Console("%s tried to zap itself or non existing process! Halting...\n", Current->name);
   }
 
-  ProcTable[pid%MAXPROC].isZapped = 1;
-  ProcTable[pid%MAXPROC].pidOfZapper = getpid();
+  ProcTable[pid%MAXPROC-1].isZapped = 1;
+  ProcTable[pid%MAXPROC-1].pidOfZapper = getpid();
   Current->status = ZAPBLOCKED;
   removeFromReadyList(Current);
   dispatcher();
@@ -795,9 +817,13 @@ void timeSlice(void){
 
 int readtime(void){
 	int curTime, startTime, time;
+	
+	startTime = readCurStartTime
+	startTime = startTime / 1000; //1000 microseconds = 1 millisecond
+	
 	curTime = USLOSS_Clock();
-	curTime = curTime / 1000; //1000 microseconds = 1 millisecond
-	startTime = Current->sliceStartTime / 1000;
+	curTime = curTime / 1000; 
+	
 	time = curTime - startTime;	
 	return time;
 } 
