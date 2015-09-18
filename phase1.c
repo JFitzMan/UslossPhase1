@@ -380,6 +380,9 @@ int join(int *code)
   if (DEBUG && debugflag)
     USLOSS_Console("join(): called by %s\n", Current->name);
   //if child has already quit
+
+
+
   if (Current->childProcPtr->status == ZOMBIE){
     if (DEBUG && debugflag)
       USLOSS_Console("join(): %s's child is a zombie! Returning...\n", Current->name);
@@ -412,6 +415,11 @@ int join(int *code)
       int kpid = Current->childProcPtr->pid;
       dispatcher();
       //TODO CHECK IF THE FUNCTION WAS ZAPPED BEFORE RETURNING THINGS MIGHT HAPPEN
+
+      if(isZapped()){
+        return -1;
+      }
+
       *code = Current->childStatus;
       return kpid;
        
