@@ -273,7 +273,13 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     //set parents childProcPts to this proc
     if (Current != NULL){
       if (Current->childProcPtr != NULL){
-        Current->childProcPtr->nextSiblingPtr = &ProcTable[procSlot];
+        procPtr cur = Current->childProcPtr;
+        //gotta make sure you add it to the end of the list if there are a lot
+        while (cur->nextSiblingPtr != NULL){
+          cur = cur->nextSiblingPtr;
+        }
+        //this will be the last sibling in the list's pointer
+        cur->nextSiblingPtr = &ProcTable[procSlot];
       }
 
       else{
@@ -444,7 +450,7 @@ void quit(int code)
       int parentSlot = Current->parentPid%MAXPROC-1;
       //if the parent was joinblocked, we may need to ready them
 
-      //if this process is it's only child, it can be set to ready
+      //if this process is it's only child, and it's waiting to run again it can be set to ready
       if (ProcTable[parentSlot].status == JOINBLOCKED){
         addToReadyList(&ProcTable[parentSlot]);
         ProcTable[parentSlot].status = READY;
@@ -585,9 +591,8 @@ void dumpProcesses(void){
     USLOSS_Console("\n   NAME   |   PID   |   PRIORITY   |  STATUS   |   PPID   | NumChildren |\n");
     USLOSS_Console("-------------------------------------------------------------------------\n");
     int i;
-	for(i = 0; i < 6; i++){
-		USLOSS_Console(" %-9s| %-8d| %-13d|", ProcTable[i].name, ProcTable[i].pid, 
-			ProcTable[i].priority);
+	for(i = 0; i < MAXPROC; i++){
+		USLOSS_Console(" %-9s| %-8d| %-13d|", ProcTable[i].name, ProcTable[i].pid, ProcTable[i].priority);
 		switch(ProcTable[i].status){
 			case READY:
 				USLOSS_Console("  READY    ");
@@ -606,9 +611,9 @@ void dumpProcesses(void){
 				break;
 			default:
 				USLOSS_Console("           ");
-	}
-	USLOSS_Console("| %-9d| %-12d\n", ProcTable[i].parentPid, ProcTable[i].numChildren);
-    USLOSS_Console("-------------------------------------------------------------------------\n");
+		}
+		USLOSS_Console("| %-9d| %-12d\n", ProcTable[i].parentPid, ProcTable[i].numChildren);
+		USLOSS_Console("-------------------------------------------------------------------------\n");
     }
 	
 	USLOSS_Console("\n");
