@@ -524,7 +524,7 @@ void dispatcher(void)
 		Current = ReadyList;
 		if (DEBUG && debugflag)
 			USLOSS_Console("dispatcher(): switching contexts to run %s\n", Current->name);
-		Current->sliceStartTime = USLOSS_Clock();
+		Current->sliceStartTime = USLOSS_Clock(); //USLOSS_Clock provides microseconds
 		USLOSS_ContextSwitch(NULL, &Current->state);
     }
     else{
@@ -812,9 +812,13 @@ void timeSlice(void){
 
 int readtime(void){
 	int curTime, startTime, time;
+	
+	startTime = readCurStartTime
+	startTime = startTime / 1000; //1000 microseconds = 1 millisecond
+	
 	curTime = USLOSS_Clock();
-	curTime = curTime / 1000; //1000 microseconds = 1 millisecond
-	startTime = Current->sliceStartTime / 1000;
+	curTime = curTime / 1000; 
+	
 	time = curTime - startTime;	
 	return time;
 } 
