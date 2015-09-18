@@ -87,6 +87,7 @@ void startup()
       ProcTable[i].status = EMPTY;
       ProcTable[i].parentPid = EMPTY;
       ProcTable[i].numChildren = EMPTY;
+      ProcTable[i].runTime = 0;
 	  ProcTable[i].sliceStartTime = 0;
     }
 
@@ -560,7 +561,14 @@ void dispatcher(void)
         USLOSS_Console("dispatcher(): switching contexts to run %s\n", Current->name);
       Current->sliceStartTime = USLOSS_Clock();
       Current->status = RUNNING;
-      oldProcess->runTime = readtime() + oldProcess->runTime;
+
+      if(oldProcess->pid != -1){
+        oldProcess->runTime = (USLOSS_Clock() - oldProcess->sliceStartTime) + oldProcess->runTime;
+      }
+      else{
+        oldProcess->runTime = 0;
+      }
+      //dumpProcesses();
       USLOSS_ContextSwitch(&oldProcess->state, &Current->state);
       p1_switch(oldProcess->pid, Current->pid);
     }
