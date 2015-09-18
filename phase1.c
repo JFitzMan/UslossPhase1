@@ -34,6 +34,8 @@ void  timeSlice(void); //TODO
 void  dispatcher(void);
 int   readtime(void);  //TOO
 int   getpid(void);
+void  clockHandler();
+void disableInterrupts();
 
 
 /* -------------------------- Globals ------------------------------------- */
@@ -91,10 +93,13 @@ void startup()
 
     /* Initialize the Ready list, etc. */
     if (DEBUG && debugflag)
+
         USLOSS_Console("startup(): initializing the Ready list\n");
     ReadyList = NULL;
 
     /* Initialize the clock interrupt handler */
+    disableInterrupts();
+    //USLOSS_IntVec[0](0, clockHandler);
 
     /* startup a sentinel process */
     if (DEBUG && debugflag)
@@ -796,3 +801,19 @@ int readtime(void){
 	time = curTime - startTime;	
 	return time;
 } 
+
+void  clockHandler(){
+
+  int previousRunTime = Current -> runTime;
+
+  Current->runTime = USLOSS_Clock() - Current ->sliceStartTime;
+
+  if (Current->runTime > MAXTIME)  
+  {
+    removeFromReadyList(Current);
+    addToReadyList(Current);
+    Current -> runTime = Current->runTime + previousRunTime;
+    dispatcher();
+  }
+
+}
