@@ -432,6 +432,7 @@ int join(int *code)
    ------------------------------------------------------------------------ */
 void quit(int code)
 {
+  inKernelMode("Quit");
   if (DEBUG && debugflag)
     USLOSS_Console("Quit called..\n");
 	if ( Current->numChildren > 0){
@@ -686,7 +687,7 @@ void dumpProcesses(void){
 */
 int inKernelMode(char *procName){
     if( (USLOSS_PSR_CURRENT_MODE & USLOSS_PsrGet()) == 0 ) {
-      USLOSS_Console("Kernel Error: Not in kernel mode, may not run %s()", procName);
+      USLOSS_Console("Kernel Error: Not in kernel mode, may not run %s()\n", procName);
       USLOSS_Halt(1);
       return 0;
     }
