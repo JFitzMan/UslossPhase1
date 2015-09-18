@@ -198,10 +198,10 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     /* Assign spot in ProcTable */
 
     //If the first entry is null, then the sentinel still needs to be started
-    if (ProcTable[0].pid == NO_PID){
+    if (ProcTable[1].pid == NO_PID){
         if (DEBUG && debugflag)
         USLOSS_Console("fork1(): ProcTable is empty, first process going in 0\n");
-        procSlot = 0;
+        procSlot = 1;
     }
     //otherise, assign the next empty slot and pid
     else{
@@ -214,7 +214,7 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
           //break on the first empty spot in the table
           if (ProcTable[i%MAXPROC].status == EMPTY)
           {
-            procSlot = i%MAXPROC-1;
+            procSlot = i%MAXPROC;
             break;
           }
           else{
@@ -225,8 +225,8 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     //increments PIDs so they never repeat
     int newPid = nextPid;
     if (DEBUG && debugflag)
-      USLOSS_Console("fork1(): ProcTable slot %d selected\n", newPid%MAXPROC-1);
-    //Current = &ProcTable[newPid%MAXPROC-1];
+      USLOSS_Console("fork1(): ProcTable slot %d selected\n", newPid%MAXPROC);
+    //Current = &ProcTable[newPid%MAXPROC];
     nextPid++;
 
 
@@ -439,15 +439,15 @@ void quit(int code)
   if ( isZapped() ) {
     
     int zapperPid = Current->pidOfZapper;
-    ProcTable[zapperPid%MAXPROC-1].status = READY;
-    addToReadyList(&ProcTable[zapperPid%MAXPROC-1]);
+    ProcTable[zapperPid%MAXPROC].status = READY;
+    addToReadyList(&ProcTable[zapperPid%MAXPROC]);
 
   }
 
   //quitting processes has parents, check their status.
   if( Current->parentPid != 0){
 
-      int parentSlot = Current->parentPid%MAXPROC-1;
+      int parentSlot = Current->parentPid%MAXPROC;
       //if the parent was joinblocked, we may need to ready them
 
       //if this process is it's only child, and it's waiting to run again it can be set to ready
@@ -520,11 +520,12 @@ void dispatcher(void)
 
     //for some reason oldProcess = Current wouldnt work if Current was NULL. This solves it
     if (Current == NULL){
-      oldProcess = NULL;
-      Current = ReadyList;
-      if (DEBUG && debugflag)
-        USLOSS_Console("dispatcher(): switching contexts to run %s\n", Current->name);
-      USLOSS_ContextSwitch(NULL, &Current->state);
+		oldProcess = NULL;
+		Current = ReadyList;
+		if (DEBUG && debugflag)
+			USLOSS_Console("dispatcher(): switching contexts to run %s\n", Current->name);
+		Current->sliceStartTime = USLOSS_Clock();
+		USLOSS_ContextSwitch(NULL, &Current->state);
     }
     else{
       oldProcess = Current;
@@ -532,6 +533,7 @@ void dispatcher(void)
       if (DEBUG && debugflag)
         USLOSS_Console("dispatcher(): switching contexts to run %s\n", Current->name);
       USLOSS_ContextSwitch(&oldProcess->state, &Current->state);
+	  Current->sliceStartTime = USLOSS_Clock();
       p1_switch(oldProcess->pid, Current->pid);
     }
 
