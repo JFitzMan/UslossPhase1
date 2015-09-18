@@ -599,6 +599,9 @@ void dumpProcesses(void){
 			case READY:
 				USLOSS_Console("  READY    ");
 				break;
+			case RUNNING:
+				USLOSS_Console("  RUNNING  ");
+				break;
 			case QUIT:
 				USLOSS_Console("   QUIT    ");
 				break;
