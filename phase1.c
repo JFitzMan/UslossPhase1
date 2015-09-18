@@ -767,15 +767,25 @@ int zap(int pid){
 }
 
 int readCurStartTime(void){
-	int time;
-	time = USLOSS_Clock(); //Gets time (microseconds) from USLOSS
-	return time;
+	int curTime;
+	curTime = USLOSS_Clock(); //Gets time (microseconds) from USLOSS
+	return curTime;
 }
 
 void timeSlice(void){
-
+	int time;
+	time = readtime;
+	if(time >= MAXTIME){
+		dispatcher();
+	}
+	else return;	
 } 
 
 int readtime(void){
-	
+	int curTime, startTime, time;
+	curTime = USLOSS_Clock();
+	curTime = curTime/1000; //1000 microseconds = 1 millisecond
+	startTime = Current->sliceStartTime / 1000;
+	time = curTime - startTime;	
+	return time;
 } 

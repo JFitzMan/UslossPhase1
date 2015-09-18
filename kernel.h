@@ -25,6 +25,7 @@ struct procStruct {
    int             isZapped;
    int             pidOfZapper;
    int 			   sliceStartTime;
+   int			   runTime;
 };
 
 /* 
@@ -49,6 +50,7 @@ union psr_values {
 #define NO_CURRENT_PROCESS NULL
 #define NO_PID -1
 #define EMPTY 0
+#define MAXTIME 80
 #define MINPRIORITY 5
 #define MAXPRIORITY 1
 #define SENTINELPID 1
