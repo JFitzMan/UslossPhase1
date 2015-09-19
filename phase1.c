@@ -377,9 +377,15 @@ void launch()
    ------------------------------------------------------------------------ */
 int join(int *code)
 {
+  
   if (DEBUG && debugflag)
     USLOSS_Console("join(): called by %s\n", Current->name);
-  //if child has already quit
+
+  if (procAmount <= 2){ //Minimum number of processes, counting Sentinel and Start1
+	USLOSS_Console("join(): Not enough processes to join! Returning -1\n");
+	return -1;
+  }
+ //if child has already quit
 
   if (Current->childProcPtr->status == ZOMBIE){
     if (DEBUG && debugflag)
