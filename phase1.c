@@ -381,8 +381,6 @@ int join(int *code)
     USLOSS_Console("join(): called by %s\n", Current->name);
   //if child has already quit
 
-
-
   if (Current->childProcPtr->status == ZOMBIE){
     if (DEBUG && debugflag)
       USLOSS_Console("join(): %s's child is a zombie! Returning...\n", Current->name);
@@ -656,34 +654,34 @@ void enableInterrupts()
 
 void dumpProcesses(void){
     USLOSS_Console("\n   NAME   |   PID   |   PRIORITY   |  STATUS   |   PPID   | NumChildren | RunTime |\n");
-    USLOSS_Console("-------------------------------------------------------------------------\n");
+    USLOSS_Console("-----------------------------------------------------------------------------------\n");
     int i;
 	for(i = 0; i < MAXPROC; i++){
 		USLOSS_Console(" %-9s| %-8d| %-13d|", ProcTable[i].name, ProcTable[i].pid, ProcTable[i].priority);
 		switch(ProcTable[i].status){
 			case READY:
-				USLOSS_Console("  READY    ");
+				USLOSS_Console(" READY     ");
 				break;
 			case RUNNING:
-				USLOSS_Console("  RUNNING  ");
+				USLOSS_Console(" RUNNING   ");
 				break;
 			case QUIT:
-				USLOSS_Console("   QUIT    ");
+				USLOSS_Console(" QUIT     ");
 				break;
 			case JOINBLOCKED:
-				USLOSS_Console("  JBLOCKED ");
+				USLOSS_Console(" JBLOCKED  ");
 				break;
 			case ZAPBLOCKED:
-				USLOSS_Console("  ZBLOCKED ");
+				USLOSS_Console(" ZBLOCKED  ");
 				break;
 			case ZOMBIE:
-				USLOSS_Console("  ZOMBIE   ");
+				USLOSS_Console(" ZOMBIE    ");
 				break;
 			default:
 				USLOSS_Console("           ");
 		}
-		USLOSS_Console("| %-9d| %-12d| %-8d\n", ProcTable[i].parentPid, ProcTable[i].numChildren, ProcTable[i].runTime);
-		USLOSS_Console("-------------------------------------------------------------------------\n");
+		USLOSS_Console("| %-9d| %-12d| %-8d|\n", ProcTable[i].parentPid, ProcTable[i].numChildren, ProcTable[i].runTime);
+		USLOSS_Console("-----------------------------------------------------------------------------------\n");
     }
 	
 	USLOSS_Console("\n");
