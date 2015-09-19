@@ -178,12 +178,14 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
 
     /* Return if stack size is too small */
     if (stacksize < USLOSS_MIN_STACK){
-      USLOSS_Console("fork1(): Process stack size is too small.  Halting...\n");
+      if (DEBUG && debugflag)
+        USLOSS_Console("fork1(): Process stack size is too small.  Halting...\n");
       return -2;
     }
     /* Return is the ProcTable is Full */
     if (procAmount >= MAXPROC){
-      USLOSS_Console("fork1(): Process Table Full! Returning -1\n");
+      if (DEBUG && debugflag)
+        USLOSS_Console("fork1(): Process Table Full! Returning -1\n");
       return -1;
     }
     /* Return if priority is out of range */
@@ -388,7 +390,8 @@ int join(int *code)
     USLOSS_Console("join(): called by %s\n", Current->name);
 
   if (procAmount <= 2){ //Minimum number of processes, counting Sentinel and Start1
-	USLOSS_Console("join(): Not enough processes to join! Returning -1\n");
+	 if (DEBUG && debugflag)
+    USLOSS_Console("join(): Not enough processes to join! Returning -1\n");
 	return -1;
   }
  //if child has already quit
