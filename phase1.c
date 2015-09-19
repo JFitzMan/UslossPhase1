@@ -79,7 +79,7 @@ void startup()
         USLOSS_Console("startup(): initializing process table, ProcTable[]\n");
 
     //Initialize specific parts of the ProcTable to be empty
-    for(i = 0; i < MAXPROC; i++){
+    for(i = 0; i < MAXPROC; i++){ 
       ProcTable[i].nextProcPtr = NO_CURRENT_PROCESS;
       ProcTable[i].childProcPtr = NO_CURRENT_PROCESS;
       ProcTable[i].name[0] = '\0';
@@ -945,6 +945,7 @@ void timeSlice(void){
 
 int readtime(void){
 	int curTime, startTime, time;
+  
 
 	startTime = readCurStartTime();
 	
