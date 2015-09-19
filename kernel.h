@@ -66,5 +66,6 @@ union psr_values {
 #define ZAPBLOCKED 4
 #define ZOMBIE 5
 #define RUNNING 6
+#define RELEASE_BLOCKED 13
 
 

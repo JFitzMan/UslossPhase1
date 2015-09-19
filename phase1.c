@@ -190,7 +190,8 @@ int fork1(char *name, int (*procCode)(char *), char *arg,
     }
     /* Return if priority is out of range */
     if (priority < MAXPRIORITY || priority > MINPRIORITY+1){
-      USLOSS_Console("fork1(): Priority out of range! Returning -1\n");
+      if (DEBUG && debugflag)
+        USLOSS_Console("fork1(): Priority out of range! Returning -1\n");
       return -1;
     }
     /* Return if name is NULL */
@@ -456,9 +457,22 @@ void quit(int code)
   inKernelMode("Quit");
   if (DEBUG && debugflag)
     USLOSS_Console("Quit called..\n");
-	if ( Current->numChildren > 0){
-		USLOSS_Console("quit(): %s called quit but still has children! Halting...", Current->name);
-		USLOSS_Halt(0);
+	if ( Current->childProcPtr != NULL){
+
+    procPtr cur;
+    for (cur = Current->childProcPtr; cur != NULL; cur = cur->nextSiblingPtr)
+    {
+      if (cur->status != ZOMBIE)
+      {
+        USLOSS_Console("quit(): %s called quit but still has children! Halting...", Current->name);
+        USLOSS_Halt(0);
+      }
+      else{
+        cur->status = QUIT;
+        Current->numChildren--;
+        dispatcher();
+      }
+    }
 	}
   Current->status = QUIT;
   p1_quit(Current->pid);
@@ -563,6 +577,29 @@ void dispatcher(void)
         ProcTable[i].numChildren = EMPTY;
         ProcTable[i].runTime = 0;
         ProcTable[i].sliceStartTime = 0;
+      }
+
+      if(ProcTable[i].status == ZOMBIE){
+        if (ProcTable[ProcTable[i].parentPid%MAXPROC].pid == -1)
+        {
+        ProcTable[i].nextProcPtr = NO_CURRENT_PROCESS;
+        ProcTable[i].childProcPtr = NO_CURRENT_PROCESS;
+        ProcTable[i].nextSiblingPtr = NO_CURRENT_PROCESS;
+        ProcTable[i].name[0] = '\0';
+        ProcTable[i].startArg[0] = '\0';
+        ProcTable[i].pid = NO_PID;
+        ProcTable[i].priority = 0;
+        ProcTable[i].start_func = NULL;
+        ProcTable[i].nextZapper = NULL;
+        ProcTable[i].status = EMPTY;
+        ProcTable[i].stack = NULL;
+        ProcTable[i].status = EMPTY;
+        ProcTable[i].childStatus = EMPTY;
+        ProcTable[i].parentPid = EMPTY;
+        ProcTable[i].numChildren = EMPTY;
+        ProcTable[i].runTime = 0;
+        ProcTable[i].sliceStartTime = 0;
+        }
       }
     }
 
@@ -700,6 +737,9 @@ void dumpProcesses(void){
 			case ZOMBIE:
 				USLOSS_Console(" ZOMBIE    ");
 				break;
+      case RELEASE_BLOCKED:
+        USLOSS_Console(" RBLOCKED  ");
+        break;
 			default:
 				USLOSS_Console("           ");
 		}
@@ -827,7 +867,7 @@ int unblockProc(int pid){
 
   inKernelMode("unblockProc");
 
-  if (ProcTable[pid%MAXPROC-1].pid == -1){
+  if (ProcTable[pid%MAXPROC].pid == -1){
     if (DEBUG && debugflag)
       USLOSS_Console("unblockProc(): Process doesn't exist!\n");
     return -2;
@@ -839,7 +879,7 @@ int unblockProc(int pid){
     return -2;
   }
 
-  if (ProcTable[pid%MAXPROC-1].status <= 10){
+  if (ProcTable[pid%MAXPROC].status <= 10){
     if (DEBUG && debugflag)
       USLOSS_Console("unblockProc(): Process is blocked on a status less than 11!\n");
     return -2;
@@ -853,8 +893,8 @@ int unblockProc(int pid){
 
   //if it gets to here, we are all good to go ahead and unblock and add to ReadyList
 
-  ProcTable[pid%MAXPROC-1].status = READY;
-  addToReadyList(&ProcTable[pid%MAXPROC-1]);
+  ProcTable[pid%MAXPROC].status = READY;
+  addToReadyList(&ProcTable[pid%MAXPROC]);
   dispatcher();
   return 0;
 }
@@ -863,7 +903,7 @@ int zap(int pid){
 
   inKernelMode("zap");
 
-  if (pid == getpid() || ProcTable[pid%MAXPROC-1].status == 0)
+  if (pid == getpid() || ProcTable[pid%MAXPROC].status == 0)
   {
     USLOSS_Console("%s tried to zap itself or non existing process! Halting...\n", Current->name);
     USLOSS_Halt(1);
