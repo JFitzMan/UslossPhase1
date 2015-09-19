@@ -377,6 +377,12 @@ void launch()
    ------------------------------------------------------------------------ */
 int join(int *code)
 {
+
+  if (isZapped())   
+  {
+    Current->numChildren--;
+    return -1;
+  }
   
   if (DEBUG && debugflag)
     USLOSS_Console("join(): called by %s\n", Current->name);
