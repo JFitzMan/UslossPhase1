@@ -36,6 +36,7 @@ int   readtime(void);  //TOO
 int   getpid(void);
 void  clockHandler();
 void disableInterrupts();
+void clearProcTableSlot(int i);
 
 
 /* -------------------------- Globals ------------------------------------- */
@@ -560,45 +561,13 @@ void dispatcher(void)
     int i;
     for(i = 0; i < MAXPROC; i++){
       if(ProcTable[i].status == QUIT){
-        ProcTable[i].nextProcPtr = NO_CURRENT_PROCESS;
-        ProcTable[i].childProcPtr = NO_CURRENT_PROCESS;
-        ProcTable[i].nextSiblingPtr = NO_CURRENT_PROCESS;
-        ProcTable[i].name[0] = '\0';
-        ProcTable[i].startArg[0] = '\0';
-        ProcTable[i].pid = NO_PID;
-        ProcTable[i].priority = 0;
-        ProcTable[i].start_func = NULL;
-        ProcTable[i].nextZapper = NULL;
-        ProcTable[i].status = EMPTY;
-        ProcTable[i].stack = NULL;
-        ProcTable[i].status = EMPTY;
-        ProcTable[i].childStatus = EMPTY;
-        ProcTable[i].parentPid = EMPTY;
-        ProcTable[i].numChildren = EMPTY;
-        ProcTable[i].runTime = 0;
-        ProcTable[i].sliceStartTime = 0;
+        clearProcTableSlot(i);
       }
 
       if(ProcTable[i].status == ZOMBIE){
         if (ProcTable[ProcTable[i].parentPid%MAXPROC].pid == -1)
         {
-        ProcTable[i].nextProcPtr = NO_CURRENT_PROCESS;
-        ProcTable[i].childProcPtr = NO_CURRENT_PROCESS;
-        ProcTable[i].nextSiblingPtr = NO_CURRENT_PROCESS;
-        ProcTable[i].name[0] = '\0';
-        ProcTable[i].startArg[0] = '\0';
-        ProcTable[i].pid = NO_PID;
-        ProcTable[i].priority = 0;
-        ProcTable[i].start_func = NULL;
-        ProcTable[i].nextZapper = NULL;
-        ProcTable[i].status = EMPTY;
-        ProcTable[i].stack = NULL;
-        ProcTable[i].status = EMPTY;
-        ProcTable[i].childStatus = EMPTY;
-        ProcTable[i].parentPid = EMPTY;
-        ProcTable[i].numChildren = EMPTY;
-        ProcTable[i].runTime = 0;
-        ProcTable[i].sliceStartTime = 0;
+          clearProcTableSlot(i);
         }
       }
     }
@@ -641,6 +610,28 @@ void dispatcher(void)
     }
 
 } /* dispatcher */
+
+void clearProcTableSlot(int i){
+    ProcTable[i].nextProcPtr = NO_CURRENT_PROCESS;
+    ProcTable[i].childProcPtr = NO_CURRENT_PROCESS;
+    ProcTable[i].nextSiblingPtr = NO_CURRENT_PROCESS;
+    ProcTable[i].name[0] = '\0';
+    ProcTable[i].startArg[0] = '\0';
+    ProcTable[i].pid = NO_PID;
+    ProcTable[i].priority = 0;
+    ProcTable[i].start_func = NULL;
+    ProcTable[i].nextZapper = NULL;
+    ProcTable[i].status = EMPTY;
+    ProcTable[i].stack = NULL;
+    ProcTable[i].status = EMPTY;
+    ProcTable[i].childStatus = EMPTY;
+    ProcTable[i].parentPid = EMPTY;
+    ProcTable[i].numChildren = EMPTY;
+    ProcTable[i].runTime = 0;
+    ProcTable[i].sliceStartTime = 0;
+}
+
+
 
 
 /* ------------------------------------------------------------------------
