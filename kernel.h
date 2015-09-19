@@ -7,6 +7,7 @@ typedef struct procStruct procStruct;
 typedef struct procStruct * procPtr;
 
 
+
 struct procStruct {
    procPtr         nextProcPtr;
    procPtr         childProcPtr;
@@ -27,6 +28,7 @@ struct procStruct {
    int             pidOfZapper;
    int 			       sliceStartTime;
    int			       runTime;
+   procPtr         nextZapper;
 };
 
 /* 

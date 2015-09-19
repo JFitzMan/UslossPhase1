@@ -450,11 +450,18 @@ void quit(int code)
 	removeFromReadyList(Current);
   procAmount--;
 
+
   if ( isZapped() ) {
     
-    int zapperPid = Current->pidOfZapper;
-    ProcTable[zapperPid%MAXPROC].status = READY;
-    addToReadyList(&ProcTable[zapperPid%MAXPROC]);
+
+    procPtr cur;
+    cur = Current->nextZapper;
+    for (cur = Current->nextZapper; cur != NULL; cur = cur->nextZapper)
+    {
+      int zapperPid = cur->pid;
+      ProcTable[zapperPid%MAXPROC].status = READY;
+      addToReadyList(&ProcTable[zapperPid%MAXPROC]);
+   }
 
   }
 
@@ -532,6 +539,7 @@ void dispatcher(void)
         ProcTable[i].pid = NO_PID;
         ProcTable[i].priority = 0;
         ProcTable[i].start_func = NULL;
+        ProcTable[i].nextZapper = NULL;
         ProcTable[i].status = EMPTY;
         ProcTable[i].stack = NULL;
         ProcTable[i].status = EMPTY;
@@ -846,7 +854,21 @@ int zap(int pid){
   }
 
   ProcTable[pid%MAXPROC].isZapped = 1;
-  ProcTable[pid%MAXPROC].pidOfZapper = getpid();
+
+  if (ProcTable[pid%MAXPROC].nextZapper == NULL){
+    ProcTable[pid%MAXPROC].nextZapper = Current;
+  }
+  else{
+    procPtr cur = ProcTable[pid%MAXPROC].nextZapper;
+    while(cur->nextZapper != NULL){
+       cur = cur ->nextZapper;
+    }
+    cur -> nextZapper = Current;
+
+  }
+
+
+  //ProcTable[pid%MAXPROC].pidOfZapper = getpid();
   Current->status = ZAPBLOCKED;
   removeFromReadyList(Current);
   dispatcher();
