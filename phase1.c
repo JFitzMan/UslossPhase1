@@ -866,6 +866,7 @@ int zap(int pid){
   if (pid == getpid() || ProcTable[pid%MAXPROC-1].status == 0)
   {
     USLOSS_Console("%s tried to zap itself or non existing process! Halting...\n", Current->name);
+    USLOSS_Halt(1);
   }
 
   ProcTable[pid%MAXPROC].isZapped = 1;
