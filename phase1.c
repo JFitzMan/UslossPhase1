@@ -459,7 +459,7 @@ void quit(int code)
     procPtr cur;
     for (cur = Current->childProcPtr; cur != NULL; cur = cur->nextSiblingPtr)
     {
-      if (cur->status != ZOMBIE)
+      if (cur->status != ZOMBIE || cur->status != QUIT)
       {
         USLOSS_Console("quit(): %s called quit but still has children! Halting...", Current->name);
         USLOSS_Halt(0);
