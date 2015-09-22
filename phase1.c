@@ -651,6 +651,9 @@ void clearProcTableSlot(int i){
     ProcTable[i].start_func = NULL;
     ProcTable[i].nextZapper = NULL;
     ProcTable[i].status = EMPTY;
+    #ifdef X_OPEN_SOURCE
+      free(ProcTable[i].stack);
+    #endif
     ProcTable[i].stack = NULL;
     ProcTable[i].status = EMPTY;
     ProcTable[i].childStatus = EMPTY;
