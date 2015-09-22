@@ -475,6 +475,7 @@ void quit(int code)
 
   }
 
+
 	if ( Current->numChildren > 0){
 
 
