@@ -403,7 +403,11 @@ int join(int *code)
     *code = Current->childProcPtr->status;
     int kpid = Current->childProcPtr->pid;
     Current->numChildren--;
-    Current->childProcPtr->status = QUIT;
+    if (Current->childProcPtr->nextZapper == NULL)
+    {
+        Current->childProcPtr->status = QUIT;
+
+    }
 
     if (Current->childProcPtr->nextSiblingPtr != NULL){
       Current->childProcPtr = Current->childProcPtr->nextSiblingPtr;
@@ -438,7 +442,7 @@ int join(int *code)
       return kpid;
        
   }
-
+Current->numChildren--;
   return -1;
 } /* join */
 
@@ -457,42 +461,56 @@ void quit(int code)
   inKernelMode("Quit");
   if (DEBUG && debugflag)
     USLOSS_Console("Quit called..\n");
+
+
+  int numZappers = 0;
+
+  if ( isZapped() ) {
+    
+    procPtr cur;
+    cur = Current->nextZapper;
+    for (cur = Current->nextZapper; cur != NULL; cur = cur->nextZapper)
+    {
+      numZappers++;
+      int zapperPid = cur->pid;
+      ProcTable[zapperPid%MAXPROC].status = READY;
+      addToReadyList(&ProcTable[zapperPid%MAXPROC]);
+   }
+   USLOSS_Console("numZappers for %s: %d\n", Current->name, numZappers);
+
+  }
+
 	if ( Current->childProcPtr != NULL){
 
     procPtr cur;
     for (cur = Current->childProcPtr; cur != NULL; cur = cur->nextSiblingPtr)
     {
+      USLOSS_Console("ChildName: %s, status: %d\n", cur->name, cur->status);
+
       if (cur->status != ZOMBIE)
       {
-        USLOSS_Console("quit(): %s called quit but still has children! Halting...", Current->name);
+        USLOSS_Console("quit(): %s called quit but still has children! Halting...\n", Current->name);
         USLOSS_Halt(0);
       }
-      else{
-        cur->status = QUIT;
-        Current->numChildren--;
-        dispatcher();
-      }
+      else if (numZappers <= 1){
+
+         cur->status = QUIT;
+         Current->numChildren--;
+          dispatcher();
+    
+       } 
+
     }
 	}
+
+
   Current->status = QUIT;
   p1_quit(Current->pid);
 	removeFromReadyList(Current);
   procAmount--;
 
 
-  if ( isZapped() ) {
-    
-
-    procPtr cur;
-    cur = Current->nextZapper;
-    for (cur = Current->nextZapper; cur != NULL; cur = cur->nextZapper)
-    {
-      int zapperPid = cur->pid;
-      ProcTable[zapperPid%MAXPROC].status = READY;
-      addToReadyList(&ProcTable[zapperPid%MAXPROC]);
-   }
-
-  }
+  
 
   //quitting processes has parents, check their status.
   if( Current->parentPid != 0){
@@ -501,7 +519,7 @@ void quit(int code)
       //if the parent was joinblocked, we may need to ready them
 
       //if this process is it's only child, and it's waiting to run again it can be set to ready
-      if (ProcTable[parentSlot].status == JOINBLOCKED){
+      if (ProcTable[parentSlot].status == JOINBLOCKED || ProcTable[parentSlot].status == ZAPBLOCKED){
         addToReadyList(&ProcTable[parentSlot]);
         ProcTable[parentSlot].status = READY;
 
@@ -535,6 +553,11 @@ void quit(int code)
         Current->status = ZOMBIE;
       }
   }
+  
+
+
+    USLOSS_Console("Proc %s status: %d\n", Current->name, Current->status);
+
 
   dispatcher();
 	
