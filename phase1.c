@@ -4,6 +4,12 @@
    University of Arizona
    Computer Science 452
    Fall 2015
+   
+   Authors:
+	Jordan Fitzpatrick
+	Sean Gallardo
+	
+	Phase 1 of 5
 
    ------------------------------------------------------------------------ */
 
