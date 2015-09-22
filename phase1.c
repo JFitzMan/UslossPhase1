@@ -454,7 +454,7 @@ void quit(int code)
   inKernelMode("Quit");
   if (DEBUG && debugflag)
     USLOSS_Console("Quit called..\n");
-	if ( Current->childProcPtr != NULL){
+	if ( Current->numChildren > 0){
 
     procPtr cur;
     for (cur = Current->childProcPtr; cur != NULL; cur = cur->nextSiblingPtr)
