@@ -476,7 +476,6 @@ void quit(int code)
       ProcTable[zapperPid%MAXPROC].status = READY;
       addToReadyList(&ProcTable[zapperPid%MAXPROC]);
    }
-   USLOSS_Console("numZappers for %s: %d\n", Current->name, numZappers);
 
   }
 
@@ -485,7 +484,6 @@ void quit(int code)
     procPtr cur;
     for (cur = Current->childProcPtr; cur != NULL; cur = cur->nextSiblingPtr)
     {
-      USLOSS_Console("ChildName: %s, status: %d\n", cur->name, cur->status);
 
       if (cur->status != ZOMBIE)
       {
@@ -556,7 +554,6 @@ void quit(int code)
   
 
 
-    USLOSS_Console("Proc %s status: %d\n", Current->name, Current->status);
 
 
   dispatcher();
