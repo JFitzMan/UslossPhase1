@@ -459,7 +459,6 @@ void quit(int code)
   if (DEBUG && debugflag)
     USLOSS_Console("Quit called..\n");
 
-
   int numZappers = 0;
 
   if ( isZapped() ) {
@@ -476,7 +475,9 @@ void quit(int code)
 
   }
 
-	if ( Current->numChildren != 0){
+
+	if ( Current->numChildren > 0){
+
 
     procPtr cur;
     for (cur = Current->childProcPtr; cur != NULL; cur = cur->nextSiblingPtr)
